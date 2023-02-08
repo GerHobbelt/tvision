@@ -1,7 +1,7 @@
 #define Uses_TKeys
 #include <tvision/tv.h>
 
-#include <internal/terminal.h>
+#include <tvision/internal/terminal.h>
 
 #include <test.h>
 #include <string.h>

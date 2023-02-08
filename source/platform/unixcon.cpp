@@ -1,5 +1,5 @@
-#include <internal/unixcon.h>
-#include <internal/scrlife.h>
+#include <tvision/internal/unixcon.h>
+#include <tvision/internal/scrlife.h>
 
 #ifdef _TV_UNIX
 

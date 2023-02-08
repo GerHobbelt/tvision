@@ -1,9 +1,9 @@
 #define Uses_TScreen
 #include <tvision/tv.h>
 
-#include <internal/termdisp.h>
-#include <internal/linuxcon.h>
-#include <internal/getenv.h>
+#include <tvision/internal/termdisp.h>
+#include <tvision/internal/linuxcon.h>
+#include <tvision/internal/getenv.h>
 
 namespace tvision
 {

@@ -1,13 +1,13 @@
-#include <internal/platform.h>
-#include <internal/unixcon.h>
-#include <internal/linuxcon.h>
-#include <internal/win32con.h>
-#include <internal/ncurdisp.h>
-#include <internal/ansidisp.h>
-#include <internal/ncursinp.h>
-#include <internal/sighandl.h>
-#include <internal/scrlife.h>
-#include <internal/getenv.h>
+#include <tvision/internal/platform.h>
+#include <tvision/internal/unixcon.h>
+#include <tvision/internal/linuxcon.h>
+#include <tvision/internal/win32con.h>
+#include <tvision/internal/ncurdisp.h>
+#include <tvision/internal/ansidisp.h>
+#include <tvision/internal/ncursinp.h>
+#include <tvision/internal/sighandl.h>
+#include <tvision/internal/scrlife.h>
+#include <tvision/internal/getenv.h>
 
 namespace tvision
 {

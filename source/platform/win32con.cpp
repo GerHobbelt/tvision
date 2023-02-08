@@ -5,12 +5,12 @@
 #define Uses_THardwareInfo
 #define Uses_TScreen
 #include <tvision/tv.h>
-#include <internal/win32con.h>
-#include <internal/stdioctl.h>
-#include <internal/winwidth.h>
-#include <internal/codepage.h>
-#include <internal/ansidisp.h>
-#include <internal/terminal.h>
+#include <tvision/internal/win32con.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/winwidth.h>
+#include <tvision/internal/codepage.h>
+#include <tvision/internal/ansidisp.h>
+#include <tvision/internal/terminal.h>
 #include <locale.h>
 
 namespace tvision

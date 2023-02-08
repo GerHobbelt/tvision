@@ -1,10 +1,10 @@
 #ifndef TVISION_UNIXCON_H
 #define TVISION_UNIXCON_H
 
-#include <internal/platform.h>
+#include <tvision/internal/platform.h>
 #ifdef _TV_UNIX
 
-#include <internal/sigwinch.h>
+#include <tvision/internal/sigwinch.h>
 
 namespace tvision
 {

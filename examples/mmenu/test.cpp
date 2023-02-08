@@ -24,7 +24,7 @@
 #define Uses_TDeskTop
 #define Uses_TProgram
 #define Uses_TApplication
-#include <tv.h>
+#include <tvision/tv.h>
 
 #pragma hdrstop
 

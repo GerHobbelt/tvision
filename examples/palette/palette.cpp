@@ -6,7 +6,7 @@
 #define Uses_TWindow
 #define Uses_TPalette
 #define Uses_TDrawBuffer
-#include <tv.h>
+#include <tvision/tv.h>
 #include "palette.h"                    // Class definitions for
                                         // this module
 #include <stdio.h>                      // For sprintf()

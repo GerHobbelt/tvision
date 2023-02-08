@@ -14,7 +14,7 @@
 #define Uses_TDeskTop
 #define Uses_TApplication
 #define Uses_MsgBox
-#include <tv.h>
+#include <tvision/tv.h>
 #include "cmds.h"       // User defined command set for this
                         // application
 #include "test.h"       // Application class definition

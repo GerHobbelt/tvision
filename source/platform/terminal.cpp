@@ -2,13 +2,13 @@
 #define Uses_THardwareInfo
 #include <tvision/tv.h>
 
-#include <internal/terminal.h>
-#include <internal/stdioctl.h>
-#include <internal/constmap.h>
-#include <internal/codepage.h>
-#include <internal/getenv.h>
-#include <internal/utf8.h>
-#include <internal/base64.h>
+#include <tvision/internal/terminal.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/constmap.h>
+#include <tvision/internal/codepage.h>
+#include <tvision/internal/getenv.h>
+#include <tvision/internal/utf8.h>
+#include <tvision/internal/base64.h>
 
 namespace tvision
 {

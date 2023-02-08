@@ -1,11 +1,11 @@
 #define Uses_TScreenCell
 #include <tvision/tv.h>
 
-#include <internal/buffdisp.h>
-#include <internal/platform.h>
-#include <internal/codepage.h>
-#include <internal/getenv.h>
-#include <internal/cursor.h>
+#include <tvision/internal/buffdisp.h>
+#include <tvision/internal/platform.h>
+#include <tvision/internal/codepage.h>
+#include <tvision/internal/getenv.h>
+#include <tvision/internal/cursor.h>
 #include <chrono>
 using std::chrono::microseconds;
 using std::chrono::steady_clock;

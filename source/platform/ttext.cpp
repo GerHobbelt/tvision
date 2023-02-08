@@ -1,12 +1,12 @@
 #define Uses_TText
 #include <tvision/tv.h>
 
-#include <internal/codepage.h>
-#include <internal/platform.h>
-#include <internal/linuxcon.h>
-#include <internal/win32con.h>
-#include <internal/winwidth.h>
-#include <internal/utf8.h>
+#include <tvision/internal/codepage.h>
+#include <tvision/internal/platform.h>
+#include <tvision/internal/linuxcon.h>
+#include <tvision/internal/win32con.h>
+#include <tvision/internal/winwidth.h>
+#include <tvision/internal/utf8.h>
 #include <wchar.h>
 
 namespace ttext

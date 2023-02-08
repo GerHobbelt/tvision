@@ -4,7 +4,7 @@
 #define Uses_TColorAttr
 #include <tvision/tv.h>
 
-#include <internal/buffdisp.h>
+#include <tvision/internal/buffdisp.h>
 
 namespace tvision
 {

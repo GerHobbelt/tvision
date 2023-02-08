@@ -1,6 +1,6 @@
-#include <internal/ansidisp.h>
-#include <internal/stdioctl.h>
-#include <internal/strings.h>
+#include <tvision/internal/ansidisp.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/strings.h>
 #include <stdlib.h>
 
 #define CSI "\x1B["

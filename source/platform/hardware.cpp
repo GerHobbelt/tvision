@@ -4,8 +4,8 @@
 #define Uses_THardwareInfo
 #include <tvision/tv.h>
 
-#include <internal/platform.h>
-#include <internal/getenv.h>
+#include <tvision/internal/platform.h>
+#include <tvision/internal/getenv.h>
 #include <iostream.h>
 #include <chrono>
 using std::chrono::duration_cast;

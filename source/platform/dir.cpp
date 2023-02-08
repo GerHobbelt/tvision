@@ -2,8 +2,8 @@
 // The code below, although inspired by RTL version 1.5 from BC++ 4.52,
 // has been written from scratch.
 
-#include <internal/findfrst.h>
-#include <internal/pathconv.h>
+#include <tvision/internal/findfrst.h>
+#include <tvision/internal/pathconv.h>
 #include <dir.h>
 
 #ifdef _WIN32

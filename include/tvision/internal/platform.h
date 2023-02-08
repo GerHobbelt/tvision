@@ -4,9 +4,9 @@
 #define Uses_TPoint
 #define Uses_TColorAttr
 #include <tvision/tv.h>
-#include <internal/stdioctl.h>
-#include <internal/buffdisp.h>
-#include <internal/events.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/buffdisp.h>
+#include <tvision/internal/events.h>
 #include <atomic>
 
 struct TEvent;

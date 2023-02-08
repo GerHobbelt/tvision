@@ -1,6 +1,6 @@
 #define Uses_TColorAttr
 #include <tvision/tv.h>
-#include <internal/constarr.h>
+#include <tvision/internal/constarr.h>
 
 namespace tvision
 {

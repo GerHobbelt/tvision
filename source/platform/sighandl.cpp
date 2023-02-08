@@ -1,4 +1,4 @@
-#include <internal/sighandl.h>
+#include <tvision/internal/sighandl.h>
 #include <stdlib.h>
 
 #ifdef _TV_UNIX

@@ -1,8 +1,8 @@
 #define Uses_TPoint
 #include <tvision/tv.h>
 
-#include <internal/stdioctl.h>
-#include <internal/getenv.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/getenv.h>
 #include <initializer_list>
 
 #ifdef _TV_UNIX

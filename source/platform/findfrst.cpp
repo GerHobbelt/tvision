@@ -1,5 +1,5 @@
-#include <internal/findfrst.h>
-#include <internal/pathconv.h>
+#include <tvision/internal/findfrst.h>
+#include <tvision/internal/pathconv.h>
 
 #define SPECIAL_BITS (_A_SUBDIR|_A_HIDDEN|_A_SYSTEM)
 

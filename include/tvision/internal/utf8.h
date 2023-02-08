@@ -1,7 +1,7 @@
 #ifndef TVISION_UTF8_H
 #define TVISION_UTF8_H
 
-#include <internal/strings.h>
+#include <tvision/internal/strings.h>
 
 #include <array>
 #include <stdint.h>

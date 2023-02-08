@@ -10,7 +10,7 @@
 #define Uses_TSubMenu
 #define Uses_TMenuItem
 #define Uses_TMenuBar
-#include <tv.h>
+#include <tvision/tv.h>
 
 #if !defined( __MMENU_H )
 #include "mmenu.h"

@@ -2,10 +2,10 @@
 #define Uses_TEvent
 #include <tvision/tv.h>
 
-#include <internal/codepage.h>
-#include <internal/strings.h>
-#include <internal/getenv.h>
-#include <internal/utf8.h>
+#include <tvision/internal/codepage.h>
+#include <tvision/internal/strings.h>
+#include <tvision/internal/getenv.h>
+#include <tvision/internal/utf8.h>
 
 namespace tvision
 {

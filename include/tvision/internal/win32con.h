@@ -5,9 +5,9 @@
 
 #include <tvision/tv.h>
 #include <tvision/compat/windows/windows.h>
-#include <internal/stdioctl.h>
-#include <internal/termdisp.h>
-#include <internal/terminal.h>
+#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/termdisp.h>
+#include <tvision/internal/terminal.h>
 
 namespace tvision
 {

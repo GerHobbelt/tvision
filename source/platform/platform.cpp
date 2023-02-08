@@ -1,8 +1,8 @@
-#include <internal/platform.h>
-#include <internal/unixcon.h>
-#include <internal/linuxcon.h>
-#include <internal/win32con.h>
-#include <internal/sighandl.h>
+#include <tvision/internal/platform.h>
+#include <tvision/internal/unixcon.h>
+#include <tvision/internal/linuxcon.h>
+#include <tvision/internal/win32con.h>
+#include <tvision/internal/sighandl.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <stdio.h>

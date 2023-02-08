@@ -2,7 +2,7 @@
 #define TVISION_CONSTMAP_H
 
 #include <tvision/tv.h>
-#include <internal/strings.h>
+#include <tvision/internal/strings.h>
 
 #include <cstddef>
 #include <utility>

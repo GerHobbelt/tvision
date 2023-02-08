@@ -4,7 +4,7 @@
 #define Uses_TScreenCell
 #include <tvision/tv.h>
 
-#include <internal/termdisp.h>
+#include <tvision/internal/termdisp.h>
 
 namespace tvision
 {

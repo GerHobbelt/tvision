@@ -1,6 +1,6 @@
 #include <tvision/tv.h>
-#include <internal/constarr.h>
-#include <internal/strings.h>
+#include <tvision/internal/constarr.h>
+#include <tvision/internal/strings.h>
 
 namespace tvision
 {

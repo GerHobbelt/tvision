@@ -1,7 +1,7 @@
 #ifdef _WIN32
 
-#include <internal/winwidth.h>
-#include <internal/utf8.h>
+#include <tvision/internal/winwidth.h>
+#include <tvision/internal/utf8.h>
 
 namespace tvision
 {
