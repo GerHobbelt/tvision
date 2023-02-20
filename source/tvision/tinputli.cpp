@@ -21,6 +21,7 @@
 #define Uses_opstream
 #define Uses_ipstream
 #define Uses_TText
+#define Uses_TClipboard
 #include <tvision/tv.h>
 
 #if !defined( __CTYPE_H )
@@ -286,6 +287,7 @@ void TInputLine::handleEvent( TEvent& event )
     char keyText[ sizeof( event.keyDown.text )+1 ];
     int delta, i, len, curWidth;
     if( (state & sfSelected) != 0 )
+        {
         switch( event.what )
             {
             case evMouseDown:
@@ -426,16 +428,13 @@ void TInputLine::handleEvent( TEvent& event )
                             *data = EOS;
                             curPos = 0;
                             }
-                            else
-                                return;
+                        else
+                            return;
                     }
                 if (extendBlock)
                     adjustSelectBlock();
                 else
-                    {
-                    selStart = 0;
-                    selEnd = 0;
-                    }
+                    selStart = selEnd = 0;
                 curWidth = displayedPos(curPos);
                 if( firstPos > curWidth )
                     firstPos = curWidth;
@@ -445,7 +444,31 @@ void TInputLine::handleEvent( TEvent& event )
                 drawView();
                 clearEvent( event );
                 break;
+            case evCommand:
+                if( event.message.command == cmPaste )
+                    {
+                    TClipboard::requestText();
+                    clearEvent( event );
+                    }
+                else if( event.message.command == cmCut || event.message.command == cmCopy )
+                    {
+                    TStringView sel( data + selStart, selEnd - selStart );
+                    TClipboard::setText(sel);
+                    if( event.message.command == cmCut )
+                        {
+                        saveState();
+                        deleteSelect();
+                        checkValid(True);
+                        selStart = selEnd = 0;
+                        drawView();
+                        }
+                    clearEvent( event );
+                    }
+                break;
             }
+        if( canUpdateCommands() )
+            updateCommands();
+        }
 }
 
 void TInputLine::selectAll( Boolean enable, Boolean scroll )
@@ -458,6 +481,8 @@ void TInputLine::selectAll( Boolean enable, Boolean scroll )
     if( scroll )
         firstPos = max( 0, displayedPos(curPos)-size.x+2 );
     drawView();
+    if( canUpdateCommands() )
+        updateCommands();
 }
 
 void TInputLine::setData( void *rec )
@@ -472,11 +497,14 @@ void TInputLine::setData( void *rec )
 
 void TInputLine::setState( ushort aState, Boolean enable )
 {
+    Boolean updateBefore = canUpdateCommands();
     TView::setState( aState, enable );
-    if( aState == sfSelected ||
-        ( aState == sfActive && (state & sfSelected) != 0 )
-      )
+    Boolean updateAfter = canUpdateCommands();
+
+    if( aState == sfSelected || (aState == sfActive && (state & sfSelected)) )
         selectAll( enable, False );
+    if( updateBefore != updateAfter )
+        updateCommands();
 }
 
 void TInputLine::setValidator( TValidator* aValid )
@@ -485,6 +513,28 @@ void TInputLine::setValidator( TValidator* aValid )
       destroy(validator);
 
     validator = aValid;
+}
+
+Boolean TInputLine::canUpdateCommands()
+{
+    return Boolean( (~state & (sfActive | sfSelected)) == 0 );
+}
+
+void TInputLine::setCmdState( ushort command, Boolean enable )
+{
+    TCommandSet s;
+    s += command;
+    if( enable && canUpdateCommands() )
+        enableCommands(s);
+    else
+        disableCommands(s);
+}
+
+void TInputLine::updateCommands()
+{
+    setCmdState( cmCut, Boolean( selStart < selEnd ) );
+    setCmdState( cmCopy, Boolean( selStart < selEnd ) );
+    setCmdState( cmPaste, True );
 }
 
 #if !defined(NO_STREAMABLE)

@@ -1,16 +1,19 @@
 #ifndef WIN32CON_H
 #define WIN32CON_H
 
-#ifdef _WIN32
-
 #include <tvision/tv.h>
-#include <tvision/compat/windows/windows.h>
+#include <compat/windows/windows.h>
 #include <tvision/internal/stdioctl.h>
 #include <tvision/internal/termdisp.h>
 #include <tvision/internal/terminal.h>
 
 namespace tvision
 {
+
+bool getWin32Key(const KEY_EVENT_RECORD &, TEvent &, InputState &) noexcept;
+void getWin32Mouse(const MOUSE_EVENT_RECORD &, TEvent &, InputState &) noexcept;
+
+#ifdef _WIN32
 
 class Win32Input;
 class Win32Display;
@@ -34,6 +37,8 @@ class Win32ConsoleStrategy final : public ConsoleStrategy
     ~Win32ConsoleStrategy();
 
     bool isAlive() noexcept override;
+    bool setClipboardText(TStringView) noexcept override;
+    bool requestClipboardText(void (&)(TStringView)) noexcept override;
 
 public:
 
@@ -58,10 +63,10 @@ public:
     {
     }
 
+    bool getEvent(TEvent &ev) noexcept override;
     int getButtonCount() noexcept override;
     void cursorOn() noexcept override;
     void cursorOff() noexcept override;
-    bool getEvent(TEvent &ev) noexcept override;
 };
 
 class Win32Display : public TerminalDisplay
@@ -95,8 +100,8 @@ protected:
     void lowlevelFlush() noexcept override;
 };
 
-} // namespace tvision
-
 #endif // _WIN32
+
+} // namespace tvision
 
 #endif // WIN32CON_H

@@ -14,10 +14,12 @@ class StdioCtl;
 
 struct InputState
 {
-    uchar buttons;
+    uchar buttons {0};
 #ifdef _WIN32
-    wchar_t surrogate;
+    wchar_t surrogate {0};
 #endif
+    bool hasFar2l {false};
+    void (*putPaste)(TStringView) {nullptr};
 };
 
 class InputGetter
@@ -178,13 +180,15 @@ struct CSIData
 
 namespace TermIO
 {
-
     void mouseOn(const StdioCtl &) noexcept;
     void mouseOff(const StdioCtl &) noexcept;
     void keyModsOn(const StdioCtl &) noexcept;
     void keyModsOff(const StdioCtl &) noexcept;
 
     void normalizeKey(KeyDownEvent &keyDown) noexcept;
+
+    bool setClipboardText(const StdioCtl &, TStringView, InputState &) noexcept;
+    bool requestClipboardText(const StdioCtl &, void (&)(TStringView), InputState &) noexcept;
 
     ParseResult parseEvent(GetChBuf&, TEvent&, InputState&) noexcept;
     ParseResult parseEscapeSeq(GetChBuf&, TEvent&, InputState&) noexcept;
@@ -195,11 +199,6 @@ namespace TermIO
     ParseResult parseSS3Key(GetChBuf&, TEvent&) noexcept;
     ParseResult parseArrowKeyA(GetChBuf&, TEvent&) noexcept;
     ParseResult parseFixTermKey(const CSIData &csi, TEvent&) noexcept;
-    ParseResult parseFar2lInput(GetChBuf &, TEvent &, InputState &) noexcept;
-
-    bool getWin32Key(const KEY_EVENT_RECORD &, TEvent &, InputState &) noexcept;
-    void getWin32Mouse(const MOUSE_EVENT_RECORD &, TEvent &, InputState &) noexcept;
-
 }
 
 } // namespace tvision
