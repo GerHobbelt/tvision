@@ -19,6 +19,7 @@ struct InputState
     wchar_t surrogate {0};
 #endif
     bool hasFar2l {false};
+    bool hasFullOsc52 {false};
     void (*putPaste)(TStringView) {nullptr};
 };
 
@@ -180,15 +181,15 @@ struct CSIData
 
 namespace TermIO
 {
-    void mouseOn(const StdioCtl &) noexcept;
-    void mouseOff(const StdioCtl &) noexcept;
-    void keyModsOn(const StdioCtl &) noexcept;
-    void keyModsOff(const StdioCtl &) noexcept;
+    void mouseOn(StdioCtl &) noexcept;
+    void mouseOff(StdioCtl &) noexcept;
+    void keyModsOn(StdioCtl &) noexcept;
+    void keyModsOff(StdioCtl &) noexcept;
 
     void normalizeKey(KeyDownEvent &keyDown) noexcept;
 
-    bool setClipboardText(const StdioCtl &, TStringView, InputState &) noexcept;
-    bool requestClipboardText(const StdioCtl &, void (&)(TStringView), InputState &) noexcept;
+    bool setClipboardText(StdioCtl &, TStringView, InputState &) noexcept;
+    bool requestClipboardText(StdioCtl &, void (&)(TStringView), InputState &) noexcept;
 
     ParseResult parseEvent(GetChBuf&, TEvent&, InputState&) noexcept;
     ParseResult parseEscapeSeq(GetChBuf&, TEvent&, InputState&) noexcept;
@@ -199,6 +200,10 @@ namespace TermIO
     ParseResult parseSS3Key(GetChBuf&, TEvent&) noexcept;
     ParseResult parseArrowKeyA(GetChBuf&, TEvent&) noexcept;
     ParseResult parseFixTermKey(const CSIData &csi, TEvent&) noexcept;
+    ParseResult parseDCS(GetChBuf&, InputState&) noexcept;
+    ParseResult parseOSC(GetChBuf&, InputState&) noexcept;
+
+    char *readUntilBelOrSt(GetChBuf &) noexcept;
 }
 
 } // namespace tvision

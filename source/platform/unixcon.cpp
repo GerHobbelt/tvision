@@ -5,6 +5,7 @@
 #include <tvision/internal/scrlife.h>
 #include <tvision/internal/sigwinch.h>
 #include <tvision/internal/terminal.h>
+#include <tvision/internal/dispbuff.h>
 #include <tvision/internal/getenv.h>
 
 #include <stdlib.h>
@@ -63,26 +64,29 @@ constexpr Command pasteCommands[] =
 
 inline UnixConsoleStrategy::UnixConsoleStrategy( DisplayStrategy &aDisplay,
                                                  InputStrategy &aInput,
-                                                 const StdioCtl &aIo,
+                                                 StdioCtl &aIo,
+                                                 DisplayBuffer &aDisplayBuf,
                                                  ScreenLifetime &aScrl,
                                                  InputState &aInputState,
                                                  SigwinchHandler *aSigwinch ) noexcept :
     ConsoleStrategy(aDisplay, aInput, {&aInput, aSigwinch}),
     io(aIo),
+    displayBuf(aDisplayBuf),
     scrl(aScrl),
     inputState(aInputState),
     sigwinch(aSigwinch)
 {
 }
 
-UnixConsoleStrategy &UnixConsoleStrategy::create( const StdioCtl &io,
+UnixConsoleStrategy &UnixConsoleStrategy::create( StdioCtl &io,
+                                                  DisplayBuffer &displayBuf,
                                                   ScreenLifetime &scrl,
                                                   InputState &inputState,
                                                   DisplayStrategy &display,
                                                   InputStrategy &input ) noexcept
 {
     auto *sigwinch = SigwinchHandler::create();
-    return *new UnixConsoleStrategy(display, input, io, scrl, inputState, sigwinch);
+    return *new UnixConsoleStrategy(display, input, io, displayBuf, scrl, inputState, sigwinch);
 }
 
 UnixConsoleStrategy::~UnixConsoleStrategy()
@@ -114,6 +118,9 @@ bool UnixConsoleStrategy::setClipboardText(TStringView text) noexcept
         }
     if (TermIO::setClipboardText(io, text, inputState))
         return true;
+    // On non-success, 'setClipboardText' prints an OSC sequence not all
+    // terminals can handle; redraw the screen in case it has been messed up.
+    displayBuf.redrawScreen(display);
     return false;
 }
 

@@ -162,7 +162,7 @@ static bool keyFromLetter(uint letter, uint mod, KeyDownEvent &keyDown) noexcept
 // The default mouse experience with Ncurses is not always good. To work around
 // some issues, we request and parse mouse events manually.
 
-void TermIO::mouseOn(const StdioCtl &io) noexcept
+void TermIO::mouseOn(StdioCtl &io) noexcept
 {
     TStringView seq = "\x1B[?1001s" // Save old highlight mouse reporting.
                       "\x1B[?1000h" // Enable mouse reporting.
@@ -172,7 +172,7 @@ void TermIO::mouseOn(const StdioCtl &io) noexcept
     io.write(seq.data(), seq.size());
 }
 
-void TermIO::mouseOff(const StdioCtl &io) noexcept
+void TermIO::mouseOff(StdioCtl &io) noexcept
 {
     TStringView seq = "\x1B[?1006l" // Disable SGR extended mouse reporting.
                       "\x1B[?1002l" // Disable mouse drag reporting.
@@ -182,7 +182,7 @@ void TermIO::mouseOff(const StdioCtl &io) noexcept
     io.write(seq.data(), seq.size());
 }
 
-void TermIO::keyModsOn(const StdioCtl &io) noexcept
+void TermIO::keyModsOn(StdioCtl &io) noexcept
 {
     // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
     // https://sw.kovidgoyal.net/kitty/keyboard-protocol.html
@@ -193,9 +193,26 @@ void TermIO::keyModsOn(const StdioCtl &io) noexcept
                       "\x1B_far2l1\x1B\\" // Enable far2l extended input.
                     ;
     io.write(seq.data(), seq.size());
+    if (char *term = getenv("TERM"))
+    {
+        // Check for full OSC 52 clipboard support.
+        if (strstr(term, "alacritty") || strstr(term, "foot"))
+            // Request clipboard contents to see if they are readable. It is
+            // not safe to print this blindly so only do it for TERMs which
+            // we know should work.
+            seq = "\x1B]52;;?\x07";
+        else
+            seq =
+                // Check for the 'kitty-query-clipboard_control' capability (XTGETTCAP).
+                "\x1BP+q6b697474792d71756572792d636c6970626f6172645f636f6e74726f6c\x1B\\"
+                // Check for 'allowWindowOps' (XTQALLOWED).
+                "\x1B]60\x1B\\"
+                ;
+        io.write(seq.data(), seq.size());
+    }
 }
 
-void TermIO::keyModsOff(const StdioCtl &io) noexcept
+void TermIO::keyModsOff(StdioCtl &io) noexcept
 {
     TStringView seq = "\x1B_far2l0\x1B\\" // Disable far2l extended input.
                       "\x1B[<u"     // Restore previous keyboard mode (Kitty).
@@ -275,6 +292,10 @@ ParseResult TermIO::parseEscapeSeq(GetChBuf &buf, TEvent &ev, InputState &state)
             break;
         case 'O':
             return parseSS3Key(buf, ev);
+        case 'P':
+            return parseDCS(buf, state);
+        case ']':
+            return parseOSC(buf, state);
         case '\x1B':
             res = parseEscapeSeq(buf, ev, state);
             if (res == Accepted && ev.what == evKeyDown)
@@ -535,7 +556,53 @@ ParseResult TermIO::parseFixTermKey(const CSIData &csi, TEvent &ev) noexcept
     return Ignored;
 }
 
-static void setOsc52Clipboard(const StdioCtl &io, TStringView text) noexcept
+ParseResult TermIO::parseDCS(GetChBuf &buf, InputState &state) noexcept
+// Pre: '\x1BP' has just been read.
+{
+    if (char *s = readUntilBelOrSt(buf))
+    {
+        // We only get a DCS in response to our request for kitty capabilities.
+        if (strstr(s, "726561642d636c6970626f617264")) // 'read-clipboard'
+            state.hasFullOsc52 = true;
+        free(s);
+    }
+    return Ignored;
+}
+
+ParseResult TermIO::parseOSC(GetChBuf &buf, InputState &state) noexcept
+// Pre: '\x1B]' has just been read.
+{
+    if (char *s = readUntilBelOrSt(buf))
+    {
+        TStringView sv(s);
+        if (sv.size() > 3 && sv.substr(0, 3) == "52;") // OSC 52
+        {
+            if (char *begin = (char *) memchr(&sv[3], ';', sv.size() - 3))
+            {
+                if (!state.hasFullOsc52)
+                    // We got a response to our initial request.
+                    state.hasFullOsc52 = true;
+                else if (state.putPaste)
+                {
+                    TStringView encoded = sv.substr(begin + 1 - &sv[0]);
+                    if (char *pDecoded = (char *) malloc((encoded.size() * 3)/4 + 3))
+                    {
+                        TStringView decoded = decodeBase64(encoded, pDecoded);
+                        state.putPaste(decoded);
+                        free(pDecoded);
+                    }
+                }
+            }
+        }
+        else if (sv.size() > 3 && sv.substr(0, 3) == "60;") // OSC 60
+            if (strstr(&sv[3], "allowWindowOps"))
+                state.hasFullOsc52 = true;
+        free(s);
+    }
+    return Ignored;
+}
+
+static bool setOsc52Clipboard(StdioCtl &io, TStringView text, InputState &state) noexcept
 {
     TStringView prefix = "\x1B]52;;";
     TStringView suffix = "\x07";
@@ -547,23 +614,69 @@ static void setOsc52Clipboard(const StdioCtl &io, TStringView text) noexcept
         io.write(buf, prefix.size() + b64.size() + suffix.size());
         free(buf);
     }
+    // Return false when there is no full OSC 52 support, even though we always
+    // make the request. This way, we can still use the internal clipboard.
+    return state.hasFullOsc52;
 }
 
-bool TermIO::setClipboardText(const StdioCtl &io, TStringView text, InputState &state) noexcept
+static bool requestOsc52Clipboard(StdioCtl &io, InputState &state) noexcept
 {
-    if (setFar2lClipboard(io, text, state))
+    if (state.hasFullOsc52)
+    {
+        TStringView seq = "\x1B]52;;?\x07";
+        io.write(seq.data(), seq.size());
         return true;
-    // This is not guaranteed to work, so we return false anyway.
-    setOsc52Clipboard(io, text);
+    }
     return false;
 }
 
-bool TermIO::requestClipboardText(const StdioCtl &io, void (&accept)(TStringView), InputState &state) noexcept
+bool TermIO::setClipboardText(StdioCtl &io, TStringView text, InputState &state) noexcept
+{
+    return setFar2lClipboard(io, text, state)
+        || setOsc52Clipboard(io, text, state);
+}
+
+bool TermIO::requestClipboardText(StdioCtl &io, void (&accept)(TStringView), InputState &state) noexcept
 {
     state.putPaste = &accept;
-    if (requestFar2lClipboard(io, state))
-        return true;
-    return false;
+    return requestFar2lClipboard(io, state)
+        || requestOsc52Clipboard(io, state);
+}
+
+char *TermIO::readUntilBelOrSt(GetChBuf &buf) noexcept
+// Returns a malloc-allocated and null-terminated string, or null.
+{
+    size_t capacity = 1024;
+    size_t len = 0;
+    char prev = '\0';
+    if (char *s = (char *) malloc(capacity))
+    {
+        char c;
+        while (c = buf.getUnbuffered(), c != -1)
+        {
+            if (c == '\x07') // BEL
+                break;
+            if (c == '\\' && prev == '\x1B') // ST
+            {
+                len -= (len > 0);
+                break;
+            }
+            if (capacity == len + 1)
+            {
+                if (void *tmp = realloc(s, capacity *= 2))
+                    s = (char *) tmp;
+                else
+                    s = (free(s), nullptr);
+            }
+            if (s)
+                s[len++] = c;
+            prev = c;
+        }
+        if (s)
+            s[len] = '\0';
+        return s;
+    }
+    return {};
 }
 
 } // namespace tvision
