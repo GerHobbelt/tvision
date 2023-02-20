@@ -3,6 +3,7 @@
 
 #include <tvision/internal/codepage.h>
 #include <tvision/internal/platform.h>
+#include <tvision/internal/unixcon.h>
 #include <tvision/internal/linuxcon.h>
 #include <tvision/internal/win32con.h>
 #include <tvision/internal/winwidth.h>

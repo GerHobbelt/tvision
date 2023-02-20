@@ -249,6 +249,20 @@ static const auto fromCursesHighKey =
     { "kc2",        {{kbDown},          0}},
 });
 
+static class NcursesInputGetter : public InputGetter
+{
+    int get() noexcept override
+    {
+        int k = wgetch(stdscr);
+        return k != ERR ? k : -1;
+    }
+
+    void unget(int k) noexcept override
+    {
+        ungetch(k);
+    }
+} ncInputGetter;
+
 NcursesInput::NcursesInput(const StdioCtl &aIo, NcursesDisplay &, bool mouse) noexcept :
     InputStrategy(aIo.in()),
     io(aIo),
@@ -273,12 +287,7 @@ NcursesInput::NcursesInput(const StdioCtl &aIo, NcursesDisplay &, bool mouse) no
 
     TermIO::keyModsOn(io);
     if (mouseEnabled)
-    {
-        // The button count is not really important. Turbo Vision only checks
-        // whether it is non-zero.
-        buttonCount = 2;
         TermIO::mouseOn(io);
-    }
 }
 
 NcursesInput::~NcursesInput()
@@ -290,7 +299,9 @@ NcursesInput::~NcursesInput()
 
 int NcursesInput::getButtonCount() noexcept
 {
-    return buttonCount;
+    // The exact button count is not really important. Turbo Vision
+    // only checks whether it is non-zero.
+    return mouseEnabled ? 2 : 0;
 }
 
 int NcursesInput::getch_nb() noexcept
@@ -299,17 +310,6 @@ int NcursesInput::getch_nb() noexcept
     int k = wgetch(stdscr);
     wtimeout(stdscr, readTimeout);
     return k;
-}
-
-int NcursesInput::NcGetChBuf::do_getch() noexcept
-{
-    int k = wgetch(stdscr);
-    return k != ERR ? k : -1;
-}
-
-bool NcursesInput::NcGetChBuf::do_ungetch(int k) noexcept
-{
-    return ungetch(k) != ERR;
 }
 
 bool NcursesInput::hasPendingEvents() noexcept
@@ -325,24 +325,20 @@ bool NcursesInput::hasPendingEvents() noexcept
 
 bool NcursesInput::getEvent(TEvent &ev) noexcept
 {
+    GetChBuf buf(ncInputGetter);
+    switch (TermIO::parseEvent(buf, ev, state))
+    {
+        case Rejected: buf.reject(); break;
+        case Accepted: return true;
+        case Ignored: return false;
+    }
+
     int k = wgetch(stdscr);
 
     if (k == KEY_RESIZE)
-        return false; // Should be handled elsewhere.
-
-    if (k == KEY_MOUSE)
+        return false; // Handled by SigwinchHandler.
+    else if (k == KEY_MOUSE)
         return parseCursesMouse(ev);
-    else if (k == KEY_ESC)
-    {
-        // Try to parse a escape sequence.
-        NcGetChBuf buf;
-        switch (TermIO::parseEscapeSeq(buf, ev, state))
-        {
-            case Rejected: break;
-            case Accepted: return true;
-            case Ignored: return false;
-        }
-    }
 
     if (k != ERR)
     {
@@ -461,7 +457,7 @@ bool NcursesInput::parseCursesMouse(TEvent &ev) noexcept
         for (auto &parseMouse : {TermIO::parseSGRMouse,
                                  TermIO::parseX10Mouse})
         {
-            NcGetChBuf buf;
+            GetChBuf buf(ncInputGetter);
             switch (parseMouse(buf, ev, state))
             {
                 case Rejected: buf.reject(); break;

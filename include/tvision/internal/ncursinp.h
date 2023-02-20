@@ -10,7 +10,6 @@
 #define Uses_TEvent
 #include <tvision/tv.h>
 
-#include <internal/sigwinch.h>
 #include <internal/terminal.h>
 
 namespace tvision
@@ -25,7 +24,6 @@ class NcursesInput : public InputStrategy
 
     const StdioCtl &io;
     InputState state {};
-    int buttonCount {0};
     bool mouseEnabled;
 
     static int getch_nb() noexcept;
@@ -34,16 +32,6 @@ class NcursesInput : public InputStrategy
     void readUtf8Char(int keys[4], int &num_keys) noexcept;
 
     bool parseCursesMouse(TEvent&) noexcept;
-
-    class NcGetChBuf : public GetChBuf
-    {
-
-    protected:
-
-        int do_getch() noexcept override;
-        bool do_ungetch(int) noexcept override;
-
-    };
 
 public:
 
