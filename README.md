@@ -119,7 +119,7 @@ If your distribution provides separate *devel* packages (e.g. `libncurses-dev`, 
 
 The runtime requirements are:
 
-* `xsel` or `xlip` for clipboard support in X11 environments.
+* `xsel` or `xclip` for clipboard support in X11 environments.
 * `wl-clipboard` for clipboard support in Wayland environments.
 
 The minimal command line required to build a Turbo Vision application (e.g. `hello.cpp` with GCC) from this project's root is:
@@ -306,7 +306,8 @@ There are a few environment variables that affect the behaviour of all Turbo Vis
     * Support for [far2l](https://github.com/elfmz/far2l)'s terminal extensions.
     * Support for key modifiers (via `TIOCLINUX`) and mouse (via GPM) in the Linux console.
 * Custom signal handler that restores the terminal state before the program crashes.
-* When `stderr` is a tty, messages written to it are redirected to a buffer to prevent them from messing up the display and are eventually printed to the console when the application shuts down or is suspended.
+* When `stderr` is a tty, messages written to it are redirected to a buffer to prevent them from messing up the display and are eventually printed to the console when exiting or suspending the application.
+    * The buffer used for this purpose has a limited size, so writes to `stderr` will fail once the buffer is full. If you wish to preserve all of `stderr`, just redirect it into a file from the command line with `2>`.
 
 The following environment variables are also taken into account:
 
@@ -394,7 +395,7 @@ The following are new features not available in Borland's release of Turbo Visio
     * `ilMaxBytes` (the default): the text can be up to `limit` bytes long, including the null terminator.
     * `ilMaxWidth`: the text can be up to `limit` columns wide.
     * `ilMaxChars`: the text can contain up to `limit` non-combining characters or graphemes.
-    
+
     In any case, the text in a `TInputLine` can never be more than 256 bytes long, including the null terminator.
 * New functions which allow getting the names of Turbo Vision's constants at runtime (e.g. `evCommand`, `kbShiftIns`, etc.):
     ```c++
@@ -416,6 +417,18 @@ The following are new features not available in Borland's release of Turbo Visio
     if (event.keyDown == TKey(kbEnter, kbShift))
         doStuff();
     ```
+* New methods which allow the usage of timed events:
+    ```c++
+    TTimerId TView::setTimer(uint timeoutMs, int periodMs = -1);
+    void TView::killTimer(TTimerId id);
+    ```
+    `setTimer` starts a timer that will first time out in `timeoutMs` milliseconds and then every `periodMs` millisecods.
+
+    If `periodMs` is negative, the timer only times out a single time and is cleaned up automatically. Otherwise, it will keep timing out periodically until `killTimer` is invoked.
+
+    When a timer times out, an `evBroadcast` event with the command `cmTimeout` is emitted, and `message.infoPtr` is set to the id of the timed-out timer.
+
+    Timeout events are generated in `TProgram::idle()`, that is, only if there are no keyboard or mouse events available.
 
 ## Screenshots
 
@@ -472,7 +485,7 @@ Unicode support consists in two new fields in `ev.keyDown` (which is a `struct K
 * `char text[4]`, which may contain whatever was read from the terminal: usually a UTF-8 sequence, but possibly any kind of raw data.
 * `uchar textLength`, which is the number of bytes of data available in `text`, from 0 to 4.
 
-Note that the `text` string is not null-terminated. 
+Note that the `text` string is not null-terminated.
 You can get a `TStringView` out of a `KeyDownEvent` with the `getText()` method.
 
 So a Unicode character can be retrieved from `TEvent` in the following way:
