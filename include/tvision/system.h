@@ -242,7 +242,7 @@ struct TEvent
 
     void getMouseEvent() noexcept;
     void getKeyEvent() noexcept;
-    static void waitEvent(int timeoutMs) noexcept;
+    static void waitForEvent(int timeoutMs) noexcept;
     static void putNothing() noexcept;
 };
 
@@ -258,8 +258,10 @@ public:
     ~TEventQueue();
 
     static void getMouseEvent( TEvent& ) noexcept;
+    static void getKeyEvent( TEvent& ) noexcept;
     static void suspend() noexcept;
     static void resume() noexcept;
+    static void waitForEvent( int ) noexcept;
 
     friend class TView;
     friend class TProgram;
@@ -268,13 +270,14 @@ public:
     static ushort _NEAR doubleDelay;
     static Boolean _NEAR mouseReverse;
 
-    static void putTextEvent( TStringView ) noexcept;
-    static Boolean getTextEvent( TEvent& ) noexcept;
+    static void putPaste( TStringView ) noexcept;
 
 private:
 
-    static TMouse *mouse;
+    static TMouse * _NEAR mouse;
     static Boolean getMouseState( TEvent& ) noexcept;
+    static Boolean getPasteEvent( TEvent& ) noexcept;
+    static Boolean readKeyPress( TEvent& ) noexcept;
 
 #if !defined( __FLAT__ )
 #if !defined( __DPMI16__ )
@@ -309,9 +312,14 @@ private:
     static ushort _NEAR autoTicks;
     static ushort _NEAR autoDelay;
 
-    static char *pendingText;
-    static size_t pendingTextLength;
-    static size_t pendingTextIndex;
+    static char * _FAR pasteText;
+    static size_t _NEAR pasteTextLength;
+    static size_t _NEAR pasteTextIndex;
+
+    static TEvent _NEAR keyEventQueue[ keyEventQSize ];
+    static size_t _NEAR keyEventCount;
+    static size_t _NEAR keyEventIndex;
+    static Boolean _NEAR keyPasteState;
 };
 
 inline void TEvent::getMouseEvent() noexcept
@@ -427,12 +435,6 @@ public:
     static void resume() noexcept;
 
 };
-
-#ifdef __BORLANDC__
-inline void TScreen::flushScreen() noexcept
-{
-}
-#endif
 
 #endif  // Uses_TScreen
 

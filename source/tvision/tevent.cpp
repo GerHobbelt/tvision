@@ -57,15 +57,20 @@ MouseEventType _NEAR TEventQueue::lastMouse;
 MouseEventType _NEAR TEventQueue::curMouse;
 MouseEventType _NEAR TEventQueue::downMouse;
 
-TMouse *TEventQueue::mouse;
+TMouse * _NEAR TEventQueue::mouse;
 
-char *TEventQueue::pendingText = 0;
-size_t TEventQueue::pendingTextLength = 0;
-size_t TEventQueue::pendingTextIndex = 0;
+char * _FAR TEventQueue::pasteText = 0;
+size_t _NEAR TEventQueue::pasteTextLength = 0;
+size_t _NEAR TEventQueue::pasteTextIndex = 0;
+
+TEvent _NEAR TEventQueue::keyEventQueue[ keyEventQSize ] = { {0} };
+size_t _NEAR TEventQueue::keyEventCount = 0;
+size_t _NEAR TEventQueue::keyEventIndex = 0;
+Boolean _NEAR TEventQueue::keyPasteState = False;
 
 TEventQueue::TEventQueue() noexcept
 {
-    static TMouse mouse;
+    static TMouse _NEAR mouse;
     this->mouse = &mouse;
     resume();
 }
@@ -100,8 +105,8 @@ void TEventQueue::suspend() noexcept
 TEventQueue::~TEventQueue()
 {
     suspend();
-    delete pendingText;
-    pendingText = 0;
+    delete pasteText;
+    pasteText = 0;
 }
 
 
@@ -221,14 +226,12 @@ Boolean TEventQueue::getMouseState( TEvent & ev ) noexcept
     ev.mouse = curMouse;
     return True;
 #else
-    Boolean result = False;
     disable();
 
     if( eventCount == 0 )
         {
         ev.what = THardwareInfo::getTickCount();
         ev.mouse = curMouse;
-        result = True;
         // 'wheel' represents an event, not a state. So, in order not to process
         // a mouse wheel event more than once, this field must be set back to zero.
         curMouse.wheel = 0;
@@ -239,14 +242,13 @@ Boolean TEventQueue::getMouseState( TEvent & ev ) noexcept
         if( ++eventQHead >= eventQueue + eventQSize )
             eventQHead = eventQueue;
         eventCount--;
-        result = True;
         }
     enable();
 
     if( mouseReverse && ev.mouse.buttons != 0 && ev.mouse.buttons != 3 )
         ev.mouse.buttons ^= 3;
 
-    return result;
+    return True;
 #endif
 }
 
@@ -291,114 +293,147 @@ I   POP DS
 }
 #endif
 
-void TEventQueue::putTextEvent( TStringView text ) noexcept
+void TEventQueue::putPaste( TStringView text ) noexcept
 {
-    delete[] pendingText;
-    pendingText = newStr(text);
-    pendingTextLength = text.size();
-    pendingTextIndex = 0;
+    delete[] pasteText;
+    // Always initialize the paste event so that 'waitForEvent' won't block.
+    if( (pasteText = new char[ text.size() ]) != 0 )
+        {
+        pasteTextLength = text.size();
+        pasteTextIndex = 0;
+        memcpy( pasteText, text.data(), text.size() );
+        }
 }
 
-Boolean TEventQueue::getTextEvent( TEvent &event ) noexcept
+Boolean TEventQueue::getPasteEvent( TEvent &ev ) noexcept
 {
-    if( pendingText )
+    if( pasteText )
         {
-        TSpan<char> text( pendingText + pendingTextIndex,
-                          pendingTextLength - pendingTextIndex );
+        TSpan<char> text( pasteText + pasteTextIndex,
+                          pasteTextLength - pasteTextIndex );
         size_t length = TText::next( text );
         if( length > 0 )
             {
-            KeyDownEvent keyDown = { 0x0000, kbBracketed, {0}, (uchar) length };
-            event.what = evKeyDown;
-            event.keyDown = keyDown;
-            memcpy( event.keyDown.text, text.data(), length );
-            pendingTextIndex += length;
+            KeyDownEvent keyDown = { 0x0000, kbPaste, {0}, (uchar) length };
+            ev.what = evKeyDown;
+            ev.keyDown = keyDown;
+            memcpy( ev.keyDown.text, text.data(), length );
+            pasteTextIndex += length;
             return True;
             }
-        delete[] pendingText;
-        pendingText = 0;
+        delete[] pasteText;
+        pasteText = 0;
         }
     return False;
 }
 
-void TEvent::getKeyEvent() noexcept
+static int isTextEvent( TEvent &ev ) noexcept
 {
-    if( TEventQueue::getTextEvent( *this ) )
+    return ev.what == evKeyDown &&
+           ( ev.keyDown.textLength != 0 ||
+             ev.keyDown.keyCode == kbEnter ||
+             ev.keyDown.keyCode == kbTab );
+}
+
+void TEventQueue::getKeyEvent( TEvent &ev ) noexcept
+{
+    if( getPasteEvent( ev ) )
         return;
-#if defined( __FLAT__ )
-    if( THardwareInfo::getKeyEvent( *this ) )
-    {
-        if( what == evKeyDown )
+    if( keyEventCount == 0 )
         {
-            // Need to handle special case of Alt-Space, Ctrl-Ins, Shift-Ins,
-            // Ctrl-Del, Shift-Del
-
-            switch( keyDown.keyCode )
+        int firstNonText = keyEventQSize;
+        for( int i = 0; i < keyEventQSize; ++i )
             {
-            case ' ':
-                if( keyDown.controlKeyState & kbAltShift )
-                    keyDown.keyCode = kbAltSpace;
+            if( !readKeyPress( keyEventQueue[i] ) )
                 break;
-
-            case kbDel:
-                if( keyDown.controlKeyState & kbCtrlShift )
-                    keyDown.keyCode = kbCtrlDel;
-                else if( keyDown.controlKeyState & kbShift )
-                    keyDown.keyCode = kbShiftDel;
+            ++keyEventCount;
+            if( !isTextEvent( keyEventQueue[i] ) )
+                {
+                firstNonText = i;
                 break;
-
-            case kbIns:
-                if( keyDown.controlKeyState & kbCtrlShift )
-                    keyDown.keyCode = kbCtrlIns;
-                else if( keyDown.controlKeyState & kbShift )
-                    keyDown.keyCode = kbShiftIns;
-                break;
+                }
             }
+        // If we receive at least 3 consecutive text events, then this is
+        // the beginning of a paste event.
+        if( keyEventCount == keyEventQSize && firstNonText == keyEventQSize )
+            keyPasteState = True;
+        if( keyPasteState )
+            for( int i = 0; i < min(keyEventCount, firstNonText); ++i )
+                keyEventQueue[i].keyDown.controlKeyState |= kbPaste;
+        if( keyEventCount < keyEventQSize || firstNonText < keyEventQSize )
+            keyPasteState = False;
+        keyEventIndex = 0;
         }
-    }
+    if( keyEventCount != 0 )
+        {
+        ev = keyEventQueue[keyEventIndex];
+        ++keyEventIndex;
+        --keyEventCount;
+        }
     else
-        what = evNothing;
+        ev.what = evNothing;
+}
+
+Boolean TEventQueue::readKeyPress( TEvent &ev ) noexcept
+{
+#if defined( __FLAT__ )
+    if( !THardwareInfo::getKeyEvent( ev ) )
+        ev.what = evNothing;
 #else
 
 I   MOV AH,1;
 I   INT 16h;
 I   JNZ keyWaiting;
 
-    what = evNothing;
-    return;
+    ev.what = evNothing;
+    return False;
 
 keyWaiting:
 
-    what = evKeyDown;
+    ev.what = evKeyDown;
 
 I   MOV AH,0;
 I   INT 16h;
 
-    keyDown.keyCode = _AX;
-    keyDown.controlKeyState = THardwareInfo::getShiftState();
+    ev.keyDown.keyCode = _AX;
+    ev.keyDown.controlKeyState = THardwareInfo::getShiftState();
 #endif
 #if defined( __BORLANDC__ )
-    if( what == evKeyDown )
+    if( ev.what == evKeyDown )
         {
-        if( ' ' <= keyDown.charScan.charCode &&
-            keyDown.charScan.charCode != 0x7F &&
-            keyDown.charScan.charCode != 0xFF
+        if( ' ' <= ev.keyDown.charScan.charCode &&
+            ev.keyDown.charScan.charCode != 0x7F &&
+            ev.keyDown.charScan.charCode != 0xFF
           )
             {
-            keyDown.text[0] = (char) keyDown.charScan.charCode;
-            keyDown.textLength = 1;
+            ev.keyDown.text[0] = (char) ev.keyDown.charScan.charCode;
+            ev.keyDown.textLength = 1;
             }
         else
-            keyDown.textLength = 0;
+            ev.keyDown.textLength = 0;
         }
+#endif
+    return Boolean( ev.what != evNothing );
+}
+
+void TEventQueue::waitForEvent(int timeoutMs) noexcept
+{
+#if defined( __FLAT__ )
+    if( !pasteText && keyEventCount == 0 )
+        THardwareInfo::waitForEvent(timeoutMs);
+#else
+    (void) timeoutMs;
 #endif
 }
 
-void TEvent::waitEvent(int timeoutMs) noexcept
+void TEvent::getKeyEvent() noexcept
 {
-#if defined( __FLAT__ )
-    THardwareInfo::waitForEvents(timeoutMs);
-#endif
+    TEventQueue::getKeyEvent( *this );
+}
+
+void TEvent::waitForEvent(int timeoutMs) noexcept
+{
+    TEventQueue::waitForEvent( timeoutMs );
 }
 
 void TEvent::putNothing() noexcept
@@ -407,4 +442,3 @@ void TEvent::putNothing() noexcept
     THardwareInfo::stopEventWait();
 #endif
 }
-
