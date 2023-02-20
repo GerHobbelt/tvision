@@ -11,6 +11,12 @@ namespace tvision
 {
 
 class StdioCtl;
+class EventSource;
+
+struct Far2lState
+{
+    bool enabled {false};
+};
 
 struct InputState
 {
@@ -18,8 +24,9 @@ struct InputState
 #ifdef _WIN32
     wchar_t surrogate {0};
 #endif
-    bool hasFar2l {false};
+    Far2lState far2l;
     bool hasFullOsc52 {false};
+    bool bracketedPaste {false};
     void (*putPaste)(TStringView) {nullptr};
 };
 
@@ -184,7 +191,7 @@ namespace TermIO
     void mouseOn(StdioCtl &) noexcept;
     void mouseOff(StdioCtl &) noexcept;
     void keyModsOn(StdioCtl &) noexcept;
-    void keyModsOff(StdioCtl &) noexcept;
+    void keyModsOff(StdioCtl &, EventSource &, InputState &) noexcept;
 
     void normalizeKey(KeyDownEvent &keyDown) noexcept;
 
@@ -195,7 +202,7 @@ namespace TermIO
     ParseResult parseEscapeSeq(GetChBuf&, TEvent&, InputState&) noexcept;
     ParseResult parseX10Mouse(GetChBuf&, TEvent&, InputState&) noexcept;
     ParseResult parseSGRMouse(GetChBuf&, TEvent&, InputState&) noexcept;
-    ParseResult parseCSIKey(const CSIData &csi, TEvent&) noexcept;
+    ParseResult parseCSIKey(const CSIData &csi, TEvent&, InputState&) noexcept;
     ParseResult parseFKeyA(GetChBuf&, TEvent&) noexcept;
     ParseResult parseSS3Key(GetChBuf&, TEvent&) noexcept;
     ParseResult parseArrowKeyA(GetChBuf&, TEvent&) noexcept;

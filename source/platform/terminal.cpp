@@ -188,9 +188,11 @@ void TermIO::keyModsOn(StdioCtl &io) noexcept
     // https://sw.kovidgoyal.net/kitty/keyboard-protocol.html
     TStringView seq = "\x1B[?1036s" // Save metaSendsEscape (XTerm).
                       "\x1B[?1036h" // Enable metaSendsEscape (XTerm).
+                      "\x1B[?2004s" // Save bracketed paste.
+                      "\x1B[?2004h" // Enable bracketed paste.
                       "\x1B[>4;1m"  // Enable modifyOtherKeys (XTerm).
                       "\x1B[>1u"    // Disambiguate escape codes (Kitty).
-                      "\x1B_far2l1\x1B\\" // Enable far2l extended input.
+                      far2lEnableSeq
                     ;
     io.write(seq.data(), seq.size());
     if (char *term = getenv("TERM"))
@@ -212,14 +214,21 @@ void TermIO::keyModsOn(StdioCtl &io) noexcept
     }
 }
 
-void TermIO::keyModsOff(StdioCtl &io) noexcept
+void TermIO::keyModsOff(StdioCtl &io, EventSource &source, InputState &state) noexcept
 {
-    TStringView seq = "\x1B_far2l0\x1B\\" // Disable far2l extended input.
+    TStringView seq = far2lPingSeq
+                      far2lDisableSeq
                       "\x1B[<u"     // Restore previous keyboard mode (Kitty).
                       "\x1B[>4m"    // Reset modifyOtherKeys (XTerm).
+                      "\x1B[?2004l" // Disable bracketed paste.
+                      "\x1B[?2004r" // Restore bracketed paste.
                       "\x1B[?1036r" // Restore metaSendsEscape (XTerm).
                     ;
     io.write(seq.data(), seq.size());
+    // If we are running across a slow connection, it is highly likely that
+    // far2l will send us keyUp or mouse events before extensions get disabled.
+    // Therefore, discard events until we get a ping response.
+    waitFar2lPing(source, state);
 }
 
 void TermIO::normalizeKey(KeyDownEvent &keyDown) noexcept
@@ -284,7 +293,7 @@ ParseResult TermIO::parseEscapeSeq(GetChBuf &buf, TEvent &ev, InputState &state)
                         if (csi.terminator() == 'u')
                             return parseFixTermKey(csi, ev);
                         else
-                            return parseCSIKey(csi, ev);
+                            return parseCSIKey(csi, ev, state);
                     }
                     break;
                 }
@@ -428,7 +437,7 @@ ParseResult TermIO::parseSGRMouse(GetChBuf &buf, TEvent &ev, InputState &state) 
 // Shift F1-4 on Konsole and F1-4 on Putty. It's easier than fixing the
 // application or updating the terminal database.
 
-ParseResult TermIO::parseCSIKey(const CSIData &csi, TEvent &ev) noexcept
+ParseResult TermIO::parseCSIKey(const CSIData &csi, TEvent &ev, InputState &state) noexcept
 // https://invisible-island.net/xterm/xterm-function-keys.html
 // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 {
@@ -466,6 +475,8 @@ ParseResult TermIO::parseCSIKey(const CSIData &csi, TEvent &ev) noexcept
             case 32: ev.keyDown = {{kbShiftF8}, kbShift}; break;
             case 33: ev.keyDown = {{kbShiftF9}, kbShift}; break;
             case 34: ev.keyDown = {{kbShiftF10}, kbShift}; break;
+            case 200: state.bracketedPaste = true; return Ignored;
+            case 201: state.bracketedPaste = false; return Ignored;
             default: return Rejected;
         }
     }

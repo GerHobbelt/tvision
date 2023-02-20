@@ -2,7 +2,7 @@
 
 A modern port of Turbo Vision 2.0, the classical framework for text-based user interfaces. Now cross-platform and with Unicode support.
 
-![tvedit on Konsole](https://user-images.githubusercontent.com/20713561/81506401-4fffdd80-92f6-11ea-8826-ee42612eb82a.png)
+![tvedit in Konsole](https://user-images.githubusercontent.com/20713561/81506401-4fffdd80-92f6-11ea-8826-ee42612eb82a.png)
 
 I started this as a personal project at the very end of 2018. By May 2020 I considered it was very close to feature parity with the original, and decided to make it open.
 
@@ -754,6 +754,8 @@ Additionally, it is always possible to paste text using your terminal emulator's
 
 ## API usage
 
+To use the `TClipboard` class, define the macro `Uses_TClipboard` before including `<tvision/tv.h>`.
+
 ### Writing to the clipboard
 
 ```c++
@@ -795,8 +797,8 @@ Here is an example on how to use it:
 
 ```c++
 // 'ev' is a TEvent, and 'ev.what' equals 'evKeyDown'.
-// If the event contains text...
-if (ev.keyDown.textLength) {
+// If we received text from the clipboard...
+if (ev.keyDown.controlKeyState & kbPaste) {
     char buf[512];
     size_t length;
     // Fill 'buf' with the text in 'ev' and in
