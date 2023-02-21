@@ -212,7 +212,7 @@ void TNSCollection::setLimit(ccIndex aLimit)
         aLimit = maxCollectionSize;
     if( aLimit != limit )
         {
-        void **aItems;
+        void **aItems = 0;
         if( aLimit > 0 )
             {
             aItems = (void **) realloc( items, aLimit*sizeof(void *) );

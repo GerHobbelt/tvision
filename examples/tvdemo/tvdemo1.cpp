@@ -40,6 +40,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <tvision/monolithic_examples.h>
+
 #ifdef __FLAT__
 #define HELP_FILENAME "demohelp.h32"
 #else
@@ -57,7 +59,12 @@
 
 extern TPoint shadowSize;
 
-int main(int argc, char **argv)
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_tvdemo_main
+#endif
+
+int main(int argc, const char **argv)
 {
     TVDemo *demoProgram = new TVDemo(argc, argv);
 
@@ -74,7 +81,7 @@ int main(int argc, char **argv)
 //   box with the appropriate search path.
 //
 
-TVDemo::TVDemo( int argc, char **argv ) :
+TVDemo::TVDemo( int argc, const char **argv ) :
     TProgInit( &TVDemo::initStatusLine,
                &TVDemo::initMenuBar,
                &TVDemo::initDeskTop )

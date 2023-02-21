@@ -39,11 +39,13 @@
 #include <stddef.h>
 #endif  // __STDDEF_H
 
+#include <tvision/monolithic_examples.h>
+
 #define genConst( n )  generate( #n, n )
 
 #define gen( n, c, o ) generate( #n, offsetof( c, o ) )
 
-void generate( const char *name, size_t offset )
+static void generate( const char *name, size_t offset )
 {
   cout << setw( 19 ) << setiosflags( ios::left )
        << name << " equ " << offset << endl;
@@ -100,7 +102,12 @@ void genRefs()
     genConst( ofFramed );
 }
 
-int main()
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_geninc_main
+#endif
+
+int main(void)
 {
     genRefs();
     return 0;

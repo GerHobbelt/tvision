@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <strstrea.h>
 
+#include <tvision/monolithic_examples.h>
+
 const int cmDirTree       = 100;
 const int cmAbout         = 101;
 const int cmNewDirFocused = 102;
@@ -420,7 +422,12 @@ void TDirApp::aboutBox( void ) {
 
 }
 
-int main( int argc, char *argv[] )
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_tvdir_main
+#endif
+
+int main( int argc, const char **argv )
 {
     TDirApp *dirApp = new TDirApp( argc == 2 ? argv[1] : ".");
     dirApp->run();

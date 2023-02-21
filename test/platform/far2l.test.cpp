@@ -1,9 +1,9 @@
 #define Uses_TKeys
 #include <tvision/tv.h>
 
-#include <internal/far2l.h>
+#include <tvision/internal/far2l.h>
 
-#include <test.h>
+#include <test/test.h>
 
 namespace tvision
 {

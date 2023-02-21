@@ -1,7 +1,7 @@
 #define Uses_TKeys
 #include <tvision/tv.h>
 
-#include <test.h>
+#include <test/test.h>
 
 struct KeyCodeAndMods
 {

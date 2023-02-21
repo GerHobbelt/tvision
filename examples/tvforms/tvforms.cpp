@@ -74,6 +74,8 @@ __link( RMemo )
 #include "listdlg.h"
 #endif // __LISTDLG_H
 
+#include <tvision/monolithic_examples.h>
+
 #if defined( __FLAT__ )
 #define FORM_WILDCARD "*.f32"
 #else
@@ -235,6 +237,11 @@ TStatusLine *TFormApp::initStatusLine( TRect r )
         *new TStatusItem( "", kbCtrlF5, cmResize )
         );
 }
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_tvforms_main
+#endif
 
 int main()
 {

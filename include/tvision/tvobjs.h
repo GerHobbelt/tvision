@@ -32,6 +32,8 @@
 #include <stddef.h>
 #endif  // __STDDEF_H
 
+#undef free
+
 class TObject
 {
 

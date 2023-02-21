@@ -1,6 +1,6 @@
 #include <tvision/internal/base64.h>
 
-#include <test.h>
+#include <test/test.h>
 
 namespace tvision
 {

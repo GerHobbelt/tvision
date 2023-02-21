@@ -1,7 +1,7 @@
 #define Uses_TTimerQueue
 #include <tvision/tv.h>
 
-#include <test.h>
+#include <test/test.h>
 
 static TTimePoint currentTime;
 static int currentTimeRequests;

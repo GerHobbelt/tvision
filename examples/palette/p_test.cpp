@@ -20,6 +20,8 @@
 #include "test.h"       // Application class definition
 #include "palette.h"    // TTestWindow class definition
 
+#include <tvision/monolithic_examples.h>
+
 //
 // TTestApp - Constructor.
 //
@@ -146,6 +148,11 @@ void TTestApp::paletteView()
     if( validView( view ) )
         deskTop->insert( view );
 }
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_palette_test_main
+#endif
 
 int main()
 {

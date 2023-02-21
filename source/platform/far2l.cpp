@@ -1,11 +1,11 @@
 #define Uses_TKeys
 #include <tvision/tv.h>
 
-#include <internal/far2l.h>
-#include <internal/win32con.h>
-#include <internal/constmap.h>
-#include <internal/base64.h>
-#include <internal/events.h>
+#include <tvision/internal/far2l.h>
+#include <tvision/internal/win32con.h>
+#include <tvision/internal/constmap.h>
+#include <tvision/internal/base64.h>
+#include <tvision/internal/events.h>
 #include <chrono>
 
 using std::chrono::milliseconds;

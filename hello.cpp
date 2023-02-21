@@ -26,6 +26,7 @@
 #define Uses_TStatusDef
 #define Uses_TDeskTop
 #include <tvision/tv.h>
+#include <tvision/monolithic_examples.h>
 
 const int GreetThemCmd = 100;
 
@@ -107,6 +108,11 @@ TStatusLine *THelloApp::initStatusLine( TRect r )
             *new TStatusItem( 0, kbF10, cmMenu )
             );
 }
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_hello_main
+#endif
 
 int main()
 {

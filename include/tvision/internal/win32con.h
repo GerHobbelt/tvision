@@ -2,7 +2,7 @@
 #define WIN32CON_H
 
 #include <tvision/tv.h>
-#include <compat/windows/windows.h>
+#include <tvision/compat/windows/windows.h>
 #include <tvision/internal/stdioctl.h>
 #include <tvision/internal/termdisp.h>
 #include <tvision/internal/terminal.h>

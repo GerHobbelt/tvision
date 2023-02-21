@@ -27,7 +27,7 @@ class TVDemo : public TApplication
 
 public:
 
-    TVDemo( int argc, char **argv );
+    TVDemo( int argc, const char **argv );
     static TStatusLine *initStatusLine( TRect r );
     static TMenuBar *initMenuBar( TRect r );
     virtual void handleEvent(TEvent& Event);

@@ -24,7 +24,7 @@
 #include <tvision/tv.h>
 __link ( RResourceCollection )
 
-#if defined( PHONENUM )
+#if defined( PHONENUM ) || !defined( PARTS )
 #include "genphone.h"
 #elif defined( PARTS )
 #include "genparts.h"
@@ -39,6 +39,17 @@ __link ( RResourceCollection )
 #if !defined( __STDLIB_H )
 #include <stdlib.h>
 #endif  // __STDLIB_H
+
+#include <tvision/monolithic_examples.h>
+
+
+#if defined(BUILD_MONOLITHIC)
+#if defined( PHONENUM ) || !defined( PARTS )
+#define main    tvision_genphone_main
+#elif defined( PARTS )
+#define main    tvision_genparts_main
+#endif
+#endif
 
 int main(void)
 {

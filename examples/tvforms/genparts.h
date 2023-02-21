@@ -50,7 +50,7 @@ __link( RButton )
 #define FORM_EXTENSION "f16"
 #endif
 
-const char rezFileName[] = "parts." FORM_EXTENSION;
+static const char rezFileName[] = "parts." FORM_EXTENSION;
 
 const int
     partNumWidth   =   6,
@@ -77,7 +77,7 @@ const KeyTypes dataKeyType = longIntKey;
 
 const int dataCount = 5;
 
-TDataRec data[dataCount] =
+static TDataRec data[dataCount] =
 {
     {1, 1036,  { 0, "Government standard issue\r"
                     "and certified by FAA for\r"
@@ -96,13 +96,13 @@ TDataRec data[dataCount] =
 };
 
 
-void initDescrLengths()
+static void initDescrLengths()
 {
     for ( int i = 0 ; i < dataCount ; i++ )
         data[i].descr.textLen = strlen(data[i].descr.textData);
 }
 
-TForm *makeForm()
+static TForm *makeForm()
 {
     const int
         formX1 = 1,

@@ -2,7 +2,7 @@
 #define Uses_TText
 #include <tvision/tv.h>
 
-#include <test.h>
+#include <test/test.h>
 
 #define COMBINING_ZIGZAG_UTF8 "\xCD\x9B"
 #define COMBINING_ZIGZAG_UTF32 U"\u035B"
@@ -13,11 +13,11 @@ static std::ostream &operator<<(std::ostream &os, TSpan<const char32_t> span)
     {
         char s[11];
         if (ch <= 0xFF)
-            sprintf(s, "\\x%02X", ch);
+            sprintf(s, "\\x%02X", (unsigned int)ch);
         else if (ch <= 0xFFFF)
-            sprintf(s, "\\u%04X", ch);
+            sprintf(s, "\\u%04X", (unsigned int)ch);
         else
-            sprintf(s, "\\U%08X", ch);
+            sprintf(s, "\\U%08X", (unsigned int)ch);
         os << s;
     }
     return os;

@@ -60,7 +60,7 @@ __link( RFrame )
 #define FORM_EXTENSION "f16"
 #endif
 
-const char rezFileName[] = "phonenum." FORM_EXTENSION;
+static const char rezFileName[] = "phonenum." FORM_EXTENSION;
 
 const int
     nameWidth = 25,
@@ -89,7 +89,7 @@ const int
     business  = 0x1,
     personal  = 0x2;
 
-const TDataRec data[dataCount] =
+static const TDataRec data[dataCount] =
 {
     {"Helton, Andrew", "Asterisk International", "Purch. Mgr.", "(415) 868-3964",
         business | personal, male},
@@ -102,7 +102,7 @@ const TDataRec data[dataCount] =
 };
 
 
-TForm *makeForm()
+static TForm *makeForm()
 {
     const int
         formX1 = 5,

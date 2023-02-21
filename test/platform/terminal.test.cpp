@@ -3,7 +3,7 @@
 
 #include <tvision/internal/terminal.h>
 
-#include <test.h>
+#include <test/test.h>
 
 static bool operator==(const KeyDownEvent &a, const KeyDownEvent &b)
 {

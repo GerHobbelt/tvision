@@ -30,6 +30,8 @@
 #include <iomanip.h>
 #include <signal.h>
 
+#include <tvision/monolithic_examples.h>
+
 TEditWindow *TEditorApp::openEditor( const char *fileName, Boolean visible )
 {
     TRect r = deskTop->getExtent();
@@ -40,7 +42,7 @@ TEditWindow *TEditorApp::openEditor( const char *fileName, Boolean visible )
     return (TEditWindow *)p;
 }
 
-TEditorApp::TEditorApp( int argc, char **argv ) :
+TEditorApp::TEditorApp( int argc, const char **argv ) :
     TProgInit( TEditorApp::initStatusLine,
                TEditorApp::initMenuBar,
                TEditorApp::initDeskTop
@@ -113,7 +115,13 @@ void TEditorApp::handleEvent( TEvent& event )
             }
     clearEvent( event );
 }
-int main( int argc, char **argv )
+
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_tvedit_main
+#endif
+
+int main( int argc, const char **argv )
 {
     TEditorApp editorApp( argc, argv );
     editorApp.run();

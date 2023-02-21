@@ -141,6 +141,8 @@
 #include <stdio.h>
 #endif // __STDIO_H
 
+#include <tvision/monolithic_examples.h>
+
 /*
  * Help compiler global variables.
  */
@@ -1042,7 +1044,12 @@ void checkOverwrite( const char *fName )
 
 //========================== Program Block ==========================//
 
-int main(int argc, char **argv)
+
+#if defined(BUILD_MONOLITHIC)
+#define main    tvision_tvhc_main
+#endif
+
+int main(int argc, const char **argv)
 {
     char helpName[MAXPATH];
     char symbName[MAXPATH];
