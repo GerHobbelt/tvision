@@ -18,7 +18,7 @@ namespace tvision
 
 static bool isWine() noexcept
 {
-    return GetProcAddress(GetModuleHandleA("ntdll"), "wine_get_version");
+    return GetProcAddress(GetModuleHandleW(L"ntdll"), "wine_get_version");
 }
 
 Win32ConsoleStrategy &Win32ConsoleStrategy::create() noexcept

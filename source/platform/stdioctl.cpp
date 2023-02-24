@@ -216,8 +216,8 @@ StdioCtl::StdioCtl() noexcept
     }
     if (!isValid(cn[input].handle))
     {
-        cn[input].handle = CreateFileA(
-            "CONIN$",
+        cn[input].handle = CreateFileW(
+            L"CONIN$",
             GENERIC_READ | GENERIC_WRITE,
             FILE_SHARE_READ,
             nullptr,
@@ -228,8 +228,8 @@ StdioCtl::StdioCtl() noexcept
     }
     if (!isValid(cn[startupOutput].handle))
     {
-        cn[startupOutput].handle = CreateFileA(
-            "CONOUT$",
+        cn[startupOutput].handle = CreateFileW(
+            L"CONOUT$",
             GENERIC_READ | GENERIC_WRITE,
             FILE_SHARE_WRITE,
             nullptr,
