@@ -526,7 +526,7 @@ void *ipstream::readData( const TStreamableClass *c, TStreamable *mem )
     // Register the actual address of the object, not the address of the
     // TStreamable sub-object, so that it is returned by subsequent calls
     // to find().
-    registerObject( dynamic_cast<void *>(mem) );
+	registerObject((void *)(mem));
     return mem->read( *this );
 }
 
