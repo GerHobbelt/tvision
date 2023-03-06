@@ -98,7 +98,7 @@ TStreamableClass::TStreamableClass( const char *n, BUILDER b, int ) noexcept :
     pstream::registerType( this );
 }
 
-TStreamableTypes::TStreamableTypes() noexcept : TNSSortedCollection( 5, 5 )
+TStreamableTypes::TStreamableTypes() noexcept : TNSSortedCollection( 40, 5 )
 {
 }
 
