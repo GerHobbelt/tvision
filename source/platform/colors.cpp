@@ -159,10 +159,10 @@ constarray<uint32_t, 256> initXTerm256toRGBLUT() noexcept
     return res;
 }
 
-extern constexpr
+extern const
 constarray<uint8_t, 256> XTerm256toXTerm16LUT = initXTerm256toXTerm16LUT();
 
-extern constexpr
+extern const
 constarray<uint32_t, 256> XTerm256toRGBLUT = initXTerm256toRGBLUT();
 
 uint8_t RGBtoXTerm16Impl(TColorRGB c) noexcept
