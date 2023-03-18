@@ -38,10 +38,8 @@ char *fast_utoa(uint32_t value, char *buffer) noexcept
 // Several versions of GCC crash when generating the table below at compile time.
 #if !defined(__GNUC__ ) || __GNUC__ >= 9 || (__GNUC__ == 5 && __GNUC_MINOR__ <= 3)
 #define BTOA_CONSTEXPR constexpr
-#define BTOA_CONSTEXPR_VAR constexpr
 #else
 #define BTOA_CONSTEXPR
-#define BTOA_CONSTEXPR_VAR const
 #endif
 
 static BTOA_CONSTEXPR
@@ -53,7 +51,7 @@ btoa_lut_t init_btoa_lut() noexcept
     return res;
 }
 
-extern BTOA_CONSTEXPR_VAR
+extern const
 btoa_lut_t btoa_lut = init_btoa_lut();
 
 } // namespace tvision

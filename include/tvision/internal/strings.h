@@ -31,9 +31,10 @@ struct alignas(4) btoa_lut_elem_t
 
 using btoa_lut_t = constarray<btoa_lut_elem_t, 256>;
 
+extern const btoa_lut_t btoa_lut;
+
 inline char *fast_btoa(uint8_t value, char *buffer) noexcept
 {
-    extern const btoa_lut_t btoa_lut;
     const auto &lut = (btoa_lut_elem_t (&) [256]) btoa_lut;
     // CAUTION: Assumes Little Endian.
     // We can afford to write more bytes into 'buffer' than digits.
