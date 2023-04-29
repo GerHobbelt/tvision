@@ -87,7 +87,6 @@ void THelloApp::handleEvent( TEvent& event )
 
 TMenuBar *THelloApp::initMenuBar( TRect r )
 {
-
     r.b.y = r.a.y+1;
 
     return new TMenuBar( r,
