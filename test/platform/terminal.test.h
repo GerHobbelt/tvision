@@ -1,7 +1,7 @@
 #ifndef TVISION_TERMINAL_TEST_H
 #define TVISION_TERMINAL_TEST_H
 
-#include <internal/terminal.h>
+#include <tvision/internal/terminal.h>
 
 inline bool operator==(const TEvent &a, const TEvent &b)
 {
