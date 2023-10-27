@@ -7,7 +7,7 @@
 #include <tvision/internal/stdioctl.h>
 #include <tvision/internal/dispbuff.h>
 #include <tvision/internal/events.h>
-#include <atomic>
+#include <tvision/internal/mutex.h>
 #include <vector>
 
 struct TEvent;
@@ -71,64 +71,8 @@ struct ConsoleStrategy
     virtual bool requestClipboardText(void (&)(TStringView)) noexcept { return false; }
 };
 
-using ThreadId = const void *;
-
-struct ThisThread
-{
-    static ThreadId id() noexcept
-    {
-        static thread_local struct {} idBase;
-        return &idBase;
-    }
-};
-
-#if ATOMIC_POINTER_LOCK_FREE < 2
-#warning The code below assumes that atomic pointers are lock-free, but they are not.
-#endif
-
-template <class T>
-struct SignalThreadSafe
-{
-    T t;
-    std::atomic<ThreadId> lockingThread {};
-
-    struct LockGuard
-    {
-        SignalThreadSafe *self;
-        LockGuard(SignalThreadSafe *aSelf) noexcept : self(aSelf)
-        {
-            ThreadId none {};
-            // Use a spin lock because regular mutexes are not signal-safe.
-            if (self)
-                while (self->lockingThread.compare_exchange_weak(none, ThisThread::id()))
-                    ;
-        }
-        ~LockGuard()
-        {
-            if (self)
-                self->lockingThread = ThreadId {};
-        }
-    };
-
-    template <class Func>
-    // 'func' takes a 'T &' by parameter.
-    auto lock(Func &&func) noexcept
-    {
-        LockGuard lk {lockedByThisThread() ? nullptr : this};
-        return func(t);
-    }
-
-    bool lockedByThisThread() const noexcept
-    {
-        return lockingThread == ThisThread::id();
-    }
-};
-
 class Platform
 {
-#ifdef _TV_UNIX
-    StdioCtl io;
-#endif
     EventWaiter waiter;
     DisplayBuffer displayBuf;
     DisplayStrategy dummyDisplay;
@@ -136,10 +80,9 @@ class Platform
     ConsoleStrategy dummyConsole {dummyDisplay, dummyInput, {}};
     // Invariant: 'console' contains either a non-owning reference to 'dummyConsole'
     // or an owning reference to a heap-allocated ConsoleStrategy object.
-    SignalThreadSafe<ConsoleStrategy *> console {&dummyConsole};
+    SignalSafeReentrantMutex<ConsoleStrategy *> console {&dummyConsole};
 
-    Platform() noexcept;
-    ~Platform();
+    static Platform *instance;
 
     void setUpConsole(ConsoleStrategy *&) noexcept;
     void restoreConsole(ConsoleStrategy *&) noexcept;
@@ -147,7 +90,8 @@ class Platform
     bool sizeChanged(TEvent &ev) noexcept;
     ConsoleStrategy &createConsole() noexcept;
 
-    static int errorCharWidth(uint32_t) noexcept;
+    static int initAndGetCharWidth(uint32_t) noexcept;
+    static void initEncodingStuff() noexcept;
     static void signalCallback(bool) noexcept;
 
     bool screenChanged() noexcept
@@ -155,10 +99,13 @@ class Platform
 
 public:
 
-    static Platform instance;
     static int (*charWidth)(uint32_t) noexcept;
 
-    // Explicit 'this' required by GCC 5.
+    // Platform is a singleton. It gets created and destroyed by THardwareInfo.
+    Platform() noexcept;
+    ~Platform();
+
+    // Note: explicit 'this' required by GCC 5.
     void setUpConsole() noexcept
         { console.lock([&] (auto *&c) { this->setUpConsole(c); }); }
     void restoreConsole() noexcept
@@ -166,7 +113,7 @@ public:
 
     bool getEvent(TEvent &ev) noexcept;
     void waitForEvent(int ms) noexcept { checkConsole(); waiter.waitForEvent(ms); }
-    void stopEventWait() noexcept { waiter.stopEventWait(); }
+    void interruptEventWait() noexcept { waiter.interruptEventWait(); }
 
     int getButtonCount() noexcept
         { return console.lock([] (auto *c) { return c->input.getButtonCount(); }); }
