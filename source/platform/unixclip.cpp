@@ -1,9 +1,9 @@
-#include <internal/unixclip.h>
+#include <tvision/internal/unixclip.h>
 
 #ifdef _TV_UNIX
 
-#include <internal/getenv.h>
-#include <internal/utf8.h>
+#include <tvision/internal/getenv.h>
+#include <tvision/internal/utf8.h>
 
 #include <initializer_list>
 
