@@ -5,33 +5,34 @@
 
 #ifdef _TV_UNIX
 
+#include <internal/errredir.h>
+
 namespace tvision
 {
 
-class ScreenLifetime;
 class SigwinchHandler;
 struct InputState;
 class DisplayBuffer;
 
 class UnixConsoleStrategy : public ConsoleStrategy
 {
+    StderrRedirector errRedir;
+
     StdioCtl &io;
     DisplayBuffer &displayBuf;
-    ScreenLifetime &scrl;
     InputState &inputState;
     SigwinchHandler *sigwinch;
 
     UnixConsoleStrategy( DisplayStrategy &, InputStrategy &, StdioCtl &,
-                         DisplayBuffer &, ScreenLifetime &, InputState &,
+                         DisplayBuffer &, InputState &,
                          SigwinchHandler * ) noexcept;
 
 public:
 
     // The lifetime of 'io' and 'displayBuf' must exceed that of the returned object.
-    // Takes ownership over 'scrl', 'inputState', 'display' and 'input'.
+    // Takes ownership over 'inputState', 'display' and 'input'.
     static UnixConsoleStrategy &create( StdioCtl &io,
                                         DisplayBuffer &displayBuf,
-                                        ScreenLifetime &scrl,
                                         InputState &inputState,
                                         DisplayStrategy &display,
                                         InputStrategy &input ) noexcept;
