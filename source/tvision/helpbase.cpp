@@ -88,6 +88,7 @@ TStreamableClass RHelpTopic( THelpTopic::name,
                                   __DELTA(THelpTopic)
                                 );
 
+
 THelpTopic::THelpTopic() noexcept : TObject()
 {
     paragraphs = 0;
@@ -482,10 +483,12 @@ TStreamable *THelpIndex::build()
     return new THelpIndex( streamableInit );
 }
 
+
 TStreamableClass RHelpIndex( THelpIndex::name,
                              THelpIndex::build,
                              __DELTA(THelpIndex)
                            );
+
 
 THelpIndex::~THelpIndex()
 {

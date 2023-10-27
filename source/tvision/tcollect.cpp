@@ -215,7 +215,9 @@ void TNSCollection::setLimit(ccIndex aLimit)
         void **aItems = 0;
         if( aLimit > 0 )
             {
-            aItems = (void **) realloc( items, aLimit*sizeof(void *) );
+			// Note: see pstream::initTypes() comment: this causes a memleak as it is called from there.
+			// Nothing we can do about it. (See the referenced code/comment.)
+			aItems = (void **) ::realloc( items, aLimit*sizeof(void *) );
             if( !aItems )
                 aLimit = 0;
             }

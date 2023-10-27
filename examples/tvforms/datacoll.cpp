@@ -67,10 +67,12 @@ void *TDataCollection::readItem( ipstream& is )
     return obj;
 }
 
+
 TStreamableClass RDataCollection( TDataCollection::name,
                                   TDataCollection::build,
                                   __DELTA(TDataCollection)
                                 );
+
 
 TDataCollection::TDataCollection( short aLimit, short aDelta,
                                   int anItemSize,

@@ -50,6 +50,7 @@ TKeyInputLine::TKeyInputLine( const TRect& bounds, int aMaxLen ) :
 {
 }
 
+
 TStreamableClass RKeyInputLine( TKeyInputLine::name,
                                   TKeyInputLine::build,
                                   __DELTA(TKeyInputLine)
@@ -105,6 +106,7 @@ TStreamableClass RNumInputLine( TNumInputLine::name,
                                   TNumInputLine::build,
                                   __DELTA(TNumInputLine)
                                 );
+
 
 TNumInputLine::TNumInputLine( const TRect& bounds,
                               int aMaxLen,

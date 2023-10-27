@@ -211,6 +211,8 @@ pstream::~pstream()
 
 void pstream::initTypes() noexcept
 {
+	// This class instantiation occurs before main() will be invoked and is never released
+	// before application termination: it will show up as a memory leak in CrtDbg/valgrind/...
     if( types == 0 )
         types = new TStreamableTypes;
 }

@@ -171,7 +171,6 @@ TStreamableClass RFileView( TFileViewer::name,
                           );
 
 
-
 static short winNumber = 0;
 
 TFileWindow::TFileWindow( const char *fileName ) :
