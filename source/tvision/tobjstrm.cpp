@@ -570,7 +570,6 @@ opstream::~opstream()
 opstream& opstream::seekp( streampos pos )
 {
     objs->freeAll();
-    objs->removeAll();
 #ifdef __BORLANDC__
     bp->seekoff( pos, ios::beg );
 #else
@@ -582,7 +581,6 @@ opstream& opstream::seekp( streampos pos )
 opstream& opstream::seekp( streamoff pos, pstream::seekdir dir )
 {
     objs->freeAll();
-    objs->removeAll();
 #ifdef __BORLANDC__
     bp->seekoff( pos, ::seekdir(dir) );
 #else
