@@ -41,10 +41,9 @@ class HistRec
 
 public:
 
-    HistRec( uchar nId, TStringView nStr ) noexcept;
+    HistRec() = delete;
 
-    void *operator new( size_t ) noexcept;
-    void *operator new( size_t, HistRec * ) noexcept;
+		static void Init(HistRec &rec, uchar nId, const TStringView nStr ) noexcept;
 
     uchar id;
     uchar len;
@@ -52,23 +51,15 @@ public:
 
 };
 
-void *HistRec::operator new( size_t, HistRec *hr ) noexcept
-{
-    return hr;
-}
+static constexpr const auto class_size = (const char *)(&((HistRec *)nullptr)->str[0]) - (const char *)((HistRec *)nullptr);
 
-void *HistRec::operator new( size_t ) noexcept
+void HistRec::Init(HistRec &rec, uchar nId, const TStringView nStr) noexcept
 {
-    abort();
-    return 0;
-}
+		rec.id = nId;
+		rec.len = nStr.size() + 1 + class_size;
 
-inline HistRec::HistRec( uchar nId, TStringView nStr ) noexcept :
-    id( nId ),
-    len( nStr.size() + 3 )
-{
-    memcpy( str, nStr.data(), nStr.size() );
-    str[nStr.size()] = EOS;
+    memcpy( rec.str, nStr.data(), nStr.size() );
+    rec.str[nStr.size()] = EOS;
 }
 
 
@@ -94,10 +85,10 @@ inline HistRec *prev( HistRec *ptr ) noexcept
 
 ushort historySize = 1024;  // initial size of history block
 
-static uchar curId;
-static HistRec *curRec;
-static HistRec *historyBlock;
-static HistRec *lastRec;
+static uchar curId = 0;
+static HistRec *curRec = nullptr;
+static HistRec *historyBlock = nullptr;
+static HistRec *lastRec = nullptr;
 
 void advanceStringPointer() noexcept
 {
@@ -122,7 +113,7 @@ void deleteString() noexcept
 
 void insertString( uchar id, TStringView str ) noexcept
 {
-    ushort len = str.size() + 3;
+    ushort len = str.size() + 1 + class_size;
     while( len > historySize - ( (char *)lastRec - (char *)historyBlock ) )
         {
         ushort firstLen = historyBlock->len;
@@ -135,7 +126,7 @@ void insertString( uchar id, TStringView str ) noexcept
 #endif
         lastRec = backup( lastRec, firstLen );
         }
-    new( lastRec ) HistRec( id, str );
+		HistRec::Init( *lastRec, id, str );
     lastRec = next( lastRec );
 }
 
@@ -176,7 +167,7 @@ void historyAdd( uchar id, TStringView str ) noexcept
 const char *historyStr( uchar id, int index ) noexcept
 {
     startId( id );
-    for( short i = 0; i <= index; i++ )
+    for( short i = 0; i <= index && curRec != 0; i++ )
         advanceStringPointer();
     if( curRec != 0 )
         return curRec->str;
@@ -186,7 +177,7 @@ const char *historyStr( uchar id, int index ) noexcept
 
 void clearHistory() noexcept
 {
-    new (historyBlock) HistRec( 0, "" );
+	  HistRec::Init(*historyBlock, 0, "" );
     lastRec = next( historyBlock );
 }
 
