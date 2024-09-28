@@ -78,10 +78,13 @@ struct fLink
 
 class TStreamable
 {
-
     friend class pstream;
     friend class opstream;
     friend class ipstream;
+
+public:
+		// warning C5204: 'TStreamable': class has virtual functions, but its trivial destructor is not virtual; instances of objects derived from this class may not be destructed correctly
+		virtual ~TStreamable() = default;
 
 private:
 
@@ -294,6 +297,7 @@ private:
 #endif
 
 class _FAR TStreamableTypes;
+class TStreamableClass;
 
 class pstream
 {

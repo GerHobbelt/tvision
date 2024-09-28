@@ -77,7 +77,7 @@
 
 // ios::open_mode and ios::seek_dir are deprecated in modern C++ and are
 // incompatible with the implementation-defined equivalents ios::openmode
-// and ios::seekdir. We simply redirect to the appropiate type on each platform.
+// and ios::seekdir. We simply redirect to the appropriate type on each platform.
 #ifdef __BORLANDC__
     typedef ios::open_mode openmode;
     typedef ios::seek_dir seekdir;
@@ -88,7 +88,9 @@
 
 const uchar nullStringLen = UCHAR_MAX;
 
+#if defined( __fLink_def )
 TStreamableClass* volatile fLink::forceLink;
+#endif
 
 TStreamableClass::TStreamableClass( const char *n, BUILDER b, int ) noexcept :
     name( n ),
