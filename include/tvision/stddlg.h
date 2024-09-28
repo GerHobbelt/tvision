@@ -110,6 +110,13 @@ inline opstream& operator << ( opstream& os, TFileInputLine* cl )
 
 struct _FAR TSearchRec;
 
+// warning C4263: 'ccIndex TFileCollection::indexOf(TSearchRec *)': member function does not override any base class virtual member function
+// warning C4264: 'ccIndex TNSSortedCollection::indexOf(void *)': no override available for virtual member function from base 'TNSSortedCollection'; function is hidden
+// warning C4263: 'ccIndex TFileCollection::insert(TSearchRec *)': member function does not override any base class virtual member function
+// warning C4264: 'ccIndex TNSSortedCollection::insert(void *)': no override available for virtual member function from base 'TNSSortedCollection'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
+
 class TFileCollection: public TSortedCollection
 {
 
@@ -161,6 +168,8 @@ public:
 
 };
 
+#pragma warning(pop)
+
 inline ipstream& operator >> ( ipstream& is, TFileCollection& cl )
     { return is >> (TStreamable&)cl; }
 inline ipstream& operator >> ( ipstream& is, TFileCollection*& cl )
@@ -190,6 +199,11 @@ inline TSearchRec *TFileCollection::lastThat( ccTestFunc func, void *arg )
 class _FAR TRect;
 class _FAR TScrollBar;
 struct _FAR TEvent;
+
+// warning C4263: 'void TSortedListBox::newList(TSortedCollection *)': member function does not override any base class virtual member function
+// warning C4264: 'void TListBox::newList(TCollection *)': no override available for virtual member function from base 'TListBox'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
 
 class TSortedListBox: public TListBox
 {
@@ -231,6 +245,8 @@ public:
 
 };
 
+#pragma warning(pop)
+
 inline ipstream& operator >> ( ipstream& is, TSortedListBox& cl )
     { return is >> (TStreamable&)cl; }
 inline ipstream& operator >> ( ipstream& is, TSortedListBox*& cl )
@@ -254,6 +270,11 @@ inline TSortedCollection *TSortedListBox::list()
 class _FAR TRect;
 class _FAR TScrollBar;
 struct _FAR TEvent;
+
+// warning C4263: 'void TFileList::newList(TFileCollection *)': member function does not override any base class virtual member function
+// warning C4264: 'void TListBox::newList(TCollection *)': no override available for virtual member function from base 'TListBox'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
 
 class TFileList : public TSortedListBox
 {
@@ -297,6 +318,8 @@ public:
     static TStreamable *build();
 
 };
+
+#pragma warning(pop)
 
 inline ipstream& operator >> ( ipstream& is, TFileList& cl )
     { return is >> (TStreamable&)cl; }
@@ -501,6 +524,13 @@ inline TDirEntry::~TDirEntry()
 
 class _FAR TDirEntry;
 
+// warning C4263: 'ccIndex TDirCollection::indexOf(TDirEntry *)': member function does not override any base class virtual member function
+// warning C4264: 'ccIndex TNSCollection::indexOf(void *)': no override available for virtual member function from base 'TNSCollection'; function is hidden
+// warning C4263: 'ccIndex TDirCollection::insert(TDirEntry *)': member function does not override any base class virtual member function
+// warning C4264: 'ccIndex TNSCollection::insert(void *)': no override available for virtual member function from base 'TNSCollection'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
+
 class TDirCollection : public TCollection
 {
 
@@ -548,6 +578,8 @@ public:
     static TStreamable *build();
 
 };
+
+#pragma warning(pop)
 
 inline ipstream& operator >> ( ipstream& is, TDirCollection& cl )
     { return is >> (TStreamable&)cl; }

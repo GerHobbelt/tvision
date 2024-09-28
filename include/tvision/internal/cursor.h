@@ -14,7 +14,8 @@ class ScreenCursor
 public:
 
     ScreenCursor() noexcept;
-    ~ScreenCursor();
+		// warning C4265: 'tvision::ScreenCursor': class has virtual functions, but its non-trivial destructor is not virtual; instances of this class may not be destructed correctly
+    virtual ~ScreenCursor();
 
     void show() noexcept;
     void hide() noexcept;

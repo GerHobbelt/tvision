@@ -35,6 +35,11 @@
 
 typedef char * (*ExpandFunc)(char *);
 
+// warning C4263: 'void TListKeyBox::newList(TDataCollection *)': member function does not override any base class virtual member function
+// warning C4264: 'void TListBox::newList(TCollection *)': no override available for virtual member function from base 'TListBox'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
+
 class TListKeyBox :  public TSortedListBox
 {
 
@@ -47,6 +52,8 @@ public:
     void newList( TDataCollection * );
     TDataCollection *list();
 };
+
+#pragma warning(pop)
 
 inline void TListKeyBox::newList( TDataCollection * aList )
 {

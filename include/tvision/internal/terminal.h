@@ -33,6 +33,8 @@ struct InputState
 class InputGetter
 {
 public:
+	// warning C5204: 'tvision::InputGetter': class has virtual functions, but its trivial destructor is not virtual; instances of objects derived from this class may not be destructed correctly
+	virtual ~InputGetter() = default;
 
     virtual int get() noexcept = 0;
     virtual void unget(int) noexcept = 0;

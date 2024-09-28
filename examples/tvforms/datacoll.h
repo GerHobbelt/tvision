@@ -31,6 +31,11 @@ enum KeyTypes {stringKey, longIntKey};
 // It uses malloc/free for item allocations in order to bypass the
 // safety pool when building with Borland C++.
 
+// warning C4263: 'void TDataCollection::error(int)': member function does not override any base class virtual member function
+// warning C4264: 'void TNSCollection::error(ccIndex,ccIndex)': no override available for virtual member function from base 'TNSCollection'; function is hidden
+#pragma warning(push)
+#pragma warning(disable: 4263 4264)
+
 class TDataCollection : public TStringCollection
 {
 
@@ -63,6 +68,8 @@ public:
     static TStreamable *build();
 
 };
+
+#pragma warning(pop)
 
 inline ipstream& operator >> ( ipstream& is, TDataCollection& cl )
     { return is >> (TStreamable&)cl; }
