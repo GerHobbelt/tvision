@@ -18,7 +18,7 @@ namespace tvision
 
 static bool isWine() noexcept
 {
-    return GetProcAddress(GetModuleHandleW(L"ntdll"), "wine_get_version");
+    return !!GetProcAddress(GetModuleHandleW(L"ntdll"), "wine_get_version");
 }
 
 Win32ConsoleStrategy &Win32ConsoleStrategy::create() noexcept
@@ -154,7 +154,7 @@ bool Win32ConsoleStrategy::setClipboardText(TStringView text) noexcept
             MultiByteToWideChar(CP_UTF8, 0, text.data(), text.size(), pData, dataLen);
             pData[dataLen] = L'\0';
             GlobalUnlock(hData);
-            result = SetClipboardData(CF_UNICODETEXT, hData);
+            result = !!SetClipboardData(CF_UNICODETEXT, hData);
         }
         CloseClipboard();
         if (hData && !result)
@@ -171,7 +171,7 @@ bool Win32ConsoleStrategy::requestClipboardText(void (&accept)(TStringView)) noe
         HGLOBAL hData;
         wchar_t *pData;
         if ( (hData = GetClipboardData(CF_UNICODETEXT)) &&
-             (result = (pData = (wchar_t *) GlobalLock(hData))) )
+             (result = !!(pData = (wchar_t *) GlobalLock(hData))) )
         {
             size_t dataLen = wcslen(pData);
             int textLen = WideCharToMultiByte(CP_UTF8, 0, pData, dataLen, nullptr, 0, nullptr, nullptr);
