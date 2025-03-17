@@ -4,7 +4,6 @@
 #define Uses_TPoint
 #define Uses_TColorAttr
 #include <tvision/tv.h>
-#include <tvision/internal/stdioctl.h>
 #include <tvision/internal/dispbuff.h>
 #include <tvision/internal/events.h>
 #include <tvision/internal/mutex.h>

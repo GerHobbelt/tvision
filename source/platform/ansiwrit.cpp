@@ -1,6 +1,7 @@
 #include <tvision/internal/ansiwrit.h>
 #include <tvision/internal/termdisp.h>
 #include <tvision/internal/strings.h>
+#include <tvision/internal/conctl.h>
 #include <stdlib.h>
 
 #define CSI "\x1B["
@@ -116,7 +117,7 @@ void AnsiScreenWriter::lowlevelMoveCursor(uint x, uint y) noexcept
 
 void AnsiScreenWriter::lowlevelFlush() noexcept
 {
-    io.write(buf.data(), buf.size());
+    con.write(buf.data(), buf.size());
     buf.clear();
 }
 

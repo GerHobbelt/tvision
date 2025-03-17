@@ -6,6 +6,7 @@
 #include <tvision/internal/ansiwrit.h>
 #include <tvision/internal/ncursinp.h>
 #include <tvision/internal/sighandl.h>
+#include <tvision/internal/conctl.h>
 #include <tvision/internal/termio.h>
 #include <tvision/internal/getenv.h>
 
@@ -21,14 +22,14 @@ ConsoleStrategy &Platform::createConsole() noexcept
 #ifdef _WIN32
     return Win32ConsoleStrategy::create();
 #else
-    auto &io = StdioCtl::getInstance();
+    auto &con = ConsoleCtl::getInstance();
     InputState &inputState = *new InputState;
-    NcursesDisplay &display = *new NcursesDisplay(io);
+    NcursesDisplay &display = *new NcursesDisplay(con);
 #ifdef __linux__
-    if (io.isLinuxConsole())
-        return LinuxConsoleStrategy::create(io, displayBuf, inputState, display, *new NcursesInput(io, display, inputState, false));
+    if (con.isLinuxConsole())
+        return LinuxConsoleStrategy::create(con, displayBuf, inputState, display, *new NcursesInput(con, display, inputState, false));
 #endif // __linux__
-    return UnixConsoleStrategy::create(io, displayBuf, inputState, display, *new NcursesInput(io, display, inputState, true));
+    return UnixConsoleStrategy::create(con, displayBuf, inputState, display, *new NcursesInput(con, display, inputState, true));
 #endif // _WIN32
 }
 
