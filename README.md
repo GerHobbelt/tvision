@@ -389,9 +389,9 @@ The following are new features not available in Borland's release of Turbo Visio
 * New class `TClipboard`, see [Clipboard interaction](#clipboard).
 * Unicode support, see [Unicode](#unicode).
 * True Color support, see [extended colors](#color).
-* New method `static void TEvent::waitForEvent(int timeoutMs)` which may block for up to `timeoutMs` milliseconds waiting for input events. If it blocks, it has the side effect of flushing screen updates. It is invoked by `TProgram::getEvent()` with `static int TProgram::eventTimeout` (default `20`) as argument so that the event loop doesn't consume 100% CPU.
-* New method `static void TEvent::putNothing()` which puts an `evNothing` event into the event queue and causes `TEvent::waitForEvent()` not to block until an `evNothing` is returned by `TEvent::getKeyEvent()`. This will usually cause the main thread to wake up from `TEvent::waitForEvent()` and to invoke `TApplication::idle()` immediately. This method is thread-safe, so it can be used to unblock the event loop from any other thread.
-* New method `void TView::getEvent(TEvent &, int timeoutMs)` which allows waiting for an event with an user-provided timeout (instead of `TProgram::eventTimeout`).
+* New method `static void TEventQueue::waitForEvents(int timeoutMs)` which may block for up to `timeoutMs` milliseconds waiting for input events. A negative `timeoutMs` can be used to wait undefinitely. If it blocks, it has the side effect of flushing screen updates (via `TScreen::flushScreen()`). It is invoked by `TProgram::getEvent()` with `static int TProgram::eventTimeoutMs` (default `20`) as argument so that the event loop does not turn into a busy loop consuming 100% CPU.
+* New method `static void TEventQueue::wakeUp()` which causes the event loop to resume execution if it is blocked at `TEventQueue::waitForEvents()`. This method is thread-safe, since its purpose is to unblock the event loop from secondary threads.
+* New method `void TView::getEvent(TEvent &, int timeoutMs)` which allows waiting for an event with an user-provided timeout (instead of `TProgram::eventTimeoutMs`).
 * It is now possible to specify a maximum text width or maximum character count in `TInputLine`. This is done through a new parameter in `TInputLine`'s constructor, `ushort limitMode`, which controls how the second constructor parameter, `uint limit`, is to be treated. The `ilXXXX` constants define the possible values of `limitMode`:
     * `ilMaxBytes` (the default): the text can be up to `limit` bytes long, including the null terminator.
     * `ilMaxWidth`: the text can be up to `limit` columns wide.
@@ -563,9 +563,9 @@ A character provided as argument to any of the Turbo Vision API functions that d
 
 For example, the string `"╔[\xFE]╗"` may be displayed as `╔[■]╗`. This means that box-drawing characters can be mixed with UTF-8 in general, which is useful for backward compatibility. If you rely on this behaviour, though, you may get unexpected results: for instance, `"\xC4\xBF"` is a valid UTF-8 sequence and is displayed as `Ŀ` instead of `─┐`.
 
-One of the issues of Unicode support is the existence of [multi-width](https://convertcase.net/vaporwave-wide-text-generator/) characters and [combining](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) characters. This conflicts with Turbo Vision's original assumption that the screen is a grid of cells occupied by a single character each. Nevertheless, these cases are handled in the following way:
+One of the issues of Unicode support is the existence of [double-width](https://convertcase.net/vaporwave-wide-text-generator/) characters and [combining](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) characters. This conflicts with Turbo Vision's original assumption that the screen is a grid of cells occupied by a single character each. Nevertheless, these cases are handled in the following way:
 
-* Multi-width characters can be drawn anywhere on the screen and nothing bad happens if they overlap partially with other characters.
+* Double-width characters can be drawn anywhere on the screen and nothing bad happens if they overlap partially with other characters.
 * Zero-width characters overlay the previous character. For example, the sequence `में` consists of the single-width character `म` and the combining characters `े` and `ं`. In this case, three Unicode codepoints are fit into the same cell.
 
     The `ZERO WIDTH JOINER` (`U+200D`) is always omitted, as it complicates things too much. For example, it can turn a string like `"👩👦"` (4 columns wide) into `"👩‍👦"` (2 columns wide). Not all terminal emulators respect the ZWJ, so, in order to produce predictable results, Turbo Vision will print both `"👩👦"` and `"👩‍👦"` as `👩👦`.
@@ -591,14 +591,14 @@ ushort TDrawBuffer::moveCStr(ushort indent, TStringView str, TAttrPair attrs);
 `str` is interpreted according to the rules exposed previously.
 
 ```c++
-ushort TDrawBuffer::moveStr(ushort indent, TStringView str, TColorAttr attr, ushort maxWidth, ushort strIndent = 0); // New
-ushort TDrawBuffer::moveCStr(ushort indent, TStringView str, TColorAttr attr, ushort maxWidth, ushort strIndent = 0); // New
+ushort TDrawBuffer::moveStr(ushort indent, TStringView str, TColorAttr attr, ushort maxWidth, ushort strOffset = 0); // New
+ushort TDrawBuffer::moveCStr(ushort indent, TStringView str, TColorAttr attr, ushort maxWidth, ushort strOffset = 0); // New
 ```
 `str` is interpreted according to the rules exposed previously, but:
-* `maxWidth` specifies the maximum amount of text that should be copied from `str`, measured in text width.
-* `strIndent` specifies the initial position `str` where to copy from, measured in text width. This is useful for horizontal scrolling. If `strIndent` is in the middle of a multi-width character, the remaining positions in that character are filled with spaces.
+* `maxWidth` specifies the maximum amount of text that should be copied from `str`, measured in text width (not in bytes).
+* `strOffset` specifies the initial position in `str` where to copy from, measured in text width (not in bytes). This is useful for horizontal scrolling. If `strOffset` points to the middle of a double-width character, a space will be copied instead of the right half of the double-width character, since it is not possible to do such a thing.
 
-The return values are the number of display columns that were actually filled with text.
+The return values are the number of cells in the buffer that were actually filled with text (which is the same as the width of the copied text).
 
 ```c++
 void TDrawBuffer::moveBuf(ushort indent, const void *source, TColorAttr attr, ushort count);
