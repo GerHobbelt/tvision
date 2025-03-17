@@ -3,7 +3,7 @@
 #ifdef _TV_UNIX
 
 #include <tvision/internal/sigwinch.h>
-#include <tvision/internal/terminal.h>
+#include <tvision/internal/termio.h>
 #include <tvision/internal/dispbuff.h>
 #include <tvision/internal/unixclip.h>
 

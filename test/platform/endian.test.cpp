@@ -3,7 +3,7 @@
 #define Uses_TWindow
 #include <tvision/tv.h>
 
-#include <tvision/internal/ansidisp.h>
+#include <tvision/internal/ansiwrit.h>
 
 #include <test.h>
 

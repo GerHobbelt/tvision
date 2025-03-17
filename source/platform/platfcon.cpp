@@ -3,10 +3,10 @@
 #include <tvision/internal/linuxcon.h>
 #include <tvision/internal/win32con.h>
 #include <tvision/internal/ncurdisp.h>
-#include <tvision/internal/ansidisp.h>
+#include <tvision/internal/ansiwrit.h>
 #include <tvision/internal/ncursinp.h>
 #include <tvision/internal/sighandl.h>
-#include <tvision/internal/terminal.h>
+#include <tvision/internal/termio.h>
 #include <tvision/internal/getenv.h>
 
 namespace tvision
@@ -23,16 +23,12 @@ ConsoleStrategy &Platform::createConsole() noexcept
 #else
     auto &io = StdioCtl::getInstance();
     InputState &inputState = *new InputState;
-    NcursesDisplay *display;
-    if (getEnv<TStringView>("TVISION_DISPLAY") == "ncurses")
-        display = new NcursesDisplay(io);
-    else
-        display = new AnsiDisplay<NcursesDisplay>(io);
+    NcursesDisplay &display = *new NcursesDisplay(io);
 #ifdef __linux__
     if (io.isLinuxConsole())
-        return LinuxConsoleStrategy::create(io, displayBuf, inputState, *display, *new NcursesInput(io, *display, inputState, false));
+        return LinuxConsoleStrategy::create(io, displayBuf, inputState, display, *new NcursesInput(io, display, inputState, false));
 #endif // __linux__
-    return UnixConsoleStrategy::create(io, displayBuf, inputState, *display, *new NcursesInput(io, *display, inputState, true));
+    return UnixConsoleStrategy::create(io, displayBuf, inputState, display, *new NcursesInput(io, display, inputState, true));
 #endif // _WIN32
 }
 

@@ -5,7 +5,7 @@
 
 #ifdef HAVE_NCURSES
 
-#include <unordered_map>
+#include <internal/ansiwrit.h>
 #include <ncurses.h>
 
 namespace tvision
@@ -13,35 +13,33 @@ namespace tvision
 
 class NcursesDisplay : public TerminalDisplay
 {
+public:
+
+    // The lifetime of 'io' exceeds that of 'this'.
+    NcursesDisplay(StdioCtl &io) noexcept;
+    ~NcursesDisplay();
+
+private:
+
+    AnsiScreenWriter ansiScreenWriter;
     SCREEN *term;
-
-    bool hasColors;
-    std::unordered_map<ushort, int> pairIdentifiers;
-    ushort definedPairs;
-
-    bool usesNcursesDraw;
 
     void getCaretPosition(int &x, int &y) noexcept;
     uint translateAttributes(TColorAttr attr) noexcept;
     uint getColorPair(uchar pairKey) noexcept;
 
-public:
-
-    // The lifetime of 'aIo' exceeds that of 'this'.
-    NcursesDisplay(StdioCtl &io) noexcept;
-    ~NcursesDisplay();
+protected:
 
     void reloadScreenInfo() noexcept override;
     TPoint getScreenSize() noexcept override;
     int getCaretSize() noexcept override;
-    int getColorCount() noexcept override;
-
     void clearScreen() noexcept override;
 
-protected:
+    int getColorCount() noexcept override;
 
     void lowlevelWriteChars(TStringView chars, TColorAttr attr) noexcept override;
     void lowlevelMoveCursor(uint x, uint y) noexcept override;
+    void lowlevelMoveCursorX(uint x, uint y) noexcept override;
     void lowlevelCursorSize(int size) noexcept override;
     void lowlevelFlush() noexcept override;
 };

@@ -1,12 +1,10 @@
 #ifndef TVISION_FAR2L_H
 #define TVISION_FAR2L_H
 
-#include <tvision/internal/terminal.h>
+#include <tvision/internal/termio.h>
 
 namespace tvision
 {
-
-class EventSource;
 
 #define far2lEnableSeq "\x1B_far2l1\x1B\\"
 #define far2lDisableSeq "\x1B_far2l0\x1B\\"
