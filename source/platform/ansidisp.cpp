@@ -1,5 +1,4 @@
 #include <tvision/internal/ansidisp.h>
-#include <tvision/internal/stdioctl.h>
 #include <tvision/internal/strings.h>
 #include <stdlib.h>
 

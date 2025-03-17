@@ -56,7 +56,9 @@ struct TCellChar
     enum : uint8_t { fWide = 0x1, fTrail = 0x2 };
 
     char _text[15];
-    uint8_t _flags;
+    uint8_t
+        _textLength : 4,
+        _flags : 4;
 
     TCellChar() = default;
     inline void moveChar(char ch);
@@ -78,6 +80,7 @@ inline void TCellChar::moveChar(char ch)
 {
     memset(this, 0, sizeof(*this));
     _text[0] = ch;
+    _textLength = 1;
 }
 
 inline void TCellChar::moveMultiByteChar(uint32_t mbc, bool wide)
@@ -86,13 +89,22 @@ inline void TCellChar::moveMultiByteChar(uint32_t mbc, bool wide)
     memset(this, 0, sizeof(*this));
     memcpy(_text, &mbc, sizeof(mbc));
     _flags = -int(wide) & fWide;
+#ifndef TV_BIG_ENDIAN
+    _textLength = 1 + ((mbc & 0xFF00) != 0) +
+                      ((mbc & 0xFF0000) != 0) +
+                      ((mbc & 0xFF000000) != 0);
+#else
+    _textLength = 1 + ((mbc & 0xFF0000) != 0) +
+                      ((mbc & 0xFF00) != 0) +
+                      ((mbc & 0xFF) != 0);
+#endif
 }
 
 inline void TCellChar::moveMultiByteChar(TStringView mbc, bool wide)
 {
-    static_assert(sizeof(_text) >= 4, "");
+    static_assert(sizeof(_text) >= maxCharSize, "");
     memset(this, 0, sizeof(*this));
-    if (0 < mbc.size() && mbc.size() <= 4)
+    if (0 < mbc.size() && mbc.size() <= maxCharSize)
     {
         _flags |= -int(wide) & fWide;
         switch (mbc.size())
@@ -102,6 +114,7 @@ inline void TCellChar::moveMultiByteChar(TStringView mbc, bool wide)
             case 2: _text[1] = mbc[1];
             case 1: _text[0] = mbc[0];
         }
+        _textLength = mbc.size();
     }
 }
 
@@ -136,6 +149,7 @@ constexpr inline void TCellChar::appendZeroWidthChar(TStringView mbc)
             case 2: _text[sz + 1] = mbc[1];
             case 1: _text[sz] = mbc[0];
         }
+        _textLength = sz + mbc.size();
     }
 }
 
@@ -146,9 +160,9 @@ constexpr inline TStringView TCellChar::getText() const
 
 constexpr inline size_t TCellChar::size() const
 {
-    size_t i = 0;
-    while (++i < sizeof(_text) && _text[i]);
-    return i;
+    // There is always at least one character, even if it is a null byte and
+    // '_textLength' is zero (e.g. because the TCellChar was zero-initialized).
+    return max(_textLength, 1);
 }
 
 constexpr inline char& TCellChar::operator[](size_t i)
