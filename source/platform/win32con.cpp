@@ -3,7 +3,7 @@
 #define Uses_THardwareInfo
 #include <tvision/tv.h>
 #include <tvision/internal/win32con.h>
-#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/conctl.h>
 #include <tvision/internal/winwidth.h>
 #include <tvision/internal/codepage.h>
 #include <tvision/internal/termio.h>
@@ -57,10 +57,6 @@ Win32ConsoleAdapter &Win32ConsoleAdapter::create() noexcept
             SetConsoleMode(con.out(), consoleMode);
             GetConsoleMode(con.out(), &consoleMode);
             supportsVT = consoleMode & ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-
-#if 0
-			supportsVT = false;
-#endif
         }
     }
 

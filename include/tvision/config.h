@@ -26,8 +26,6 @@
 #error "Expected exit to be redefined to point at our override function(s) below..."
 #endif
 
-#else
-#error X
 #endif
 
 #if !defined( __LIMITS_H )
