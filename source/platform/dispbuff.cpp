@@ -6,8 +6,6 @@
 #include <tvision/internal/codepage.h>
 #include <tvision/internal/getenv.h>
 #include <chrono>
-using std::chrono::microseconds;
-using std::chrono::steady_clock;
 
 #ifdef _MSC_VER
 #define __builtin_expect(x, y) x
@@ -28,14 +26,13 @@ DisplayBuffer::DisplayBuffer() noexcept :
     int fps = getEnv<int>("TVISION_MAX_FPS", defaultFPS);
     limitFPS = (fps > 0);
     if (limitFPS)
-        flushDelay = microseconds((int) 1e6/fps);
+        flushDelay = std::chrono::microseconds((int) 1e6/fps);
 }
 
-TScreenCell *DisplayBuffer::reloadScreenInfo(DisplayStrategy &display) noexcept
+TScreenCell *DisplayBuffer::reloadScreenInfo(DisplayAdapter &display) noexcept
 {
-    display.reloadScreenInfo();
-    size = display.getScreenSize();
-    caretSize = display.getCaretSize();
+    size = display.reloadScreenInfo();
+    caretSize = -1;
     resizeBuffer();
     return buffer.data();
 }
@@ -52,14 +49,14 @@ void DisplayBuffer::resizeBuffer() noexcept
     rowDamage.resize(size.y, {INT_MAX, INT_MIN});
 }
 
-void DisplayBuffer::clearScreen(DisplayStrategy &display) noexcept
+void DisplayBuffer::clearScreen(DisplayAdapter &display) noexcept
 {
     display.clearScreen();
-    display.lowlevelFlush();
+    display.flush();
     resizeBuffer();
 }
 
-void DisplayBuffer::redrawScreen(DisplayStrategy &display) noexcept
+void DisplayBuffer::redrawScreen(DisplayAdapter &display) noexcept
 {
     screenTouched = true;
     lastFlush = {};
@@ -119,13 +116,31 @@ bool DisplayBuffer::timeToFlush() noexcept
     // Avoid flushing faster than the maximum FPS.
     if (limitFPS)
     {
-        auto now = steady_clock::now();
-        if (now - lastFlush >= flushDelay)
+        auto now = Clock::now();
+        auto flushTime = lastFlush + flushDelay;
+        if (flushTime <= now)
+        {
             lastFlush = now;
+            pendingFlush = TimePoint();
+        }
         else
+        {
+            pendingFlush = flushTime;
             return false;
+        }
     }
     return true;
+}
+
+int DisplayBuffer::timeUntilPendingFlushMs() noexcept
+{
+    using namespace std::chrono;
+    if (pendingFlush == TimePoint())
+        return -1;
+    auto now = Clock::now();
+    if (pendingFlush < now)
+        return 0;
+    return duration_cast<milliseconds>(pendingFlush - now).count();
 }
 
 void DisplayBuffer::setCursorPosition(int x, int y) noexcept
@@ -190,21 +205,21 @@ bool DisplayBuffer::needsFlush() const noexcept
 
 namespace
 {
-void flushScreenAlgorithm(DisplayBuffer &, DisplayStrategy &) noexcept;
+void flushScreenAlgorithm(DisplayBuffer &, DisplayAdapter &) noexcept;
 }
 
-void DisplayBuffer::flushScreen(DisplayStrategy &display) noexcept
+void DisplayBuffer::flushScreen(DisplayAdapter &display) noexcept
 {
     if (needsFlush() && timeToFlush())
     {
         drawCursor();
         flushScreenAlgorithm(*this, display);
         if (caretPosition.x != -1)
-            display.lowlevelMoveCursor(caretPosition.x, caretPosition.y);
+            display.setCaretPosition(caretPosition);
         undrawCursor();
         if (caretSize != newCaretSize)
-            display.lowlevelCursorSize(newCaretSize);
-        display.lowlevelFlush();
+            display.setCaretSize(newCaretSize);
+        display.flush();
         screenTouched = false;
         caretOrCursorChanged = false;
         caretSize = newCaretSize;
@@ -234,9 +249,8 @@ namespace
 struct FlushScreenAlgorithm
 {
     DisplayBuffer &disp;
-    DisplayStrategy &display;
+    DisplayAdapter &display;
     TPoint size;
-    TPoint last;
     int x, y, rowOffs;
     TScreenCell *cell;
     DisplayBuffer::Range damage;
@@ -292,7 +306,7 @@ inline bool FlushScreenAlgorithm::wideCanOverlap() const noexcept
     return disp.wideOverlapping;
 }
 
-inline void flushScreenAlgorithm(DisplayBuffer &disp, DisplayStrategy &display) noexcept
+inline void flushScreenAlgorithm(DisplayBuffer &disp, DisplayAdapter &display) noexcept
 {
     FlushScreenAlgorithm {disp, display}.run();
 }
@@ -300,7 +314,6 @@ inline void flushScreenAlgorithm(DisplayBuffer &disp, DisplayStrategy &display) 
 inline void FlushScreenAlgorithm::run() noexcept
 {
     size = disp.size;
-    last = {INT_MIN, INT_MIN};
     rowOffs = 0;
     for (y = 0; y < size.y; ++y, rowOffs += size.x)
     {
@@ -361,19 +374,11 @@ inline void FlushScreenAlgorithm::writeSpace() noexcept
     writeCell(ch, cell->attr, 0);
 }
 
-inline void FlushScreenAlgorithm::writeCell( const TCellChar &Char,
-                                             const TColorAttr &Attr,
+inline void FlushScreenAlgorithm::writeCell( const TCellChar &ch,
+                                             const TColorAttr &attr,
                                              bool wide ) noexcept
 {
-    // 'last' is the last written cell occupied by text.
-    // That is to say, the hardware cursor is located at {last.x + 1, last.y}.
-    if (y != last.y)
-        display.lowlevelMoveCursor(x, y);
-    else if (x != last.x + 1)
-        display.lowlevelMoveCursorX(x, y);
-
-    display.lowlevelWriteChars(Char.getText(), Attr);
-    last = {x + wide, y};
+    display.writeCell({x, y}, ch.getText(), attr, wide);
 }
 
 void FlushScreenAlgorithm::handleWideCharSpill() noexcept

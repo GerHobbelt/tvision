@@ -18,34 +18,36 @@
 namespace tvision
 {
 
-inline LinuxConsoleStrategy::LinuxConsoleStrategy( DisplayStrategy &aDisplay,
-                                                   LinuxConsoleInput &aWrapper,
-                                                   InputState &aInputState,
-                                                   SigwinchHandler *aSigwinch,
-                                                   GpmInput *aGpm ) noexcept :
-    ConsoleStrategy( aDisplay,
-                     aGpm ? *aGpm : aWrapper.input,
-                     {&aWrapper, aGpm, aSigwinch} ),
+inline LinuxConsoleAdapter::LinuxConsoleAdapter( DisplayAdapter &aDisplay,
+                                                 LinuxConsoleInput &aWrapper,
+                                                 InputState &aInputState,
+                                                 SigwinchHandler *aSigwinch,
+                                                 GpmInput *aGpm ) noexcept :
+    ConsoleAdapter(aDisplay, {&aWrapper, aGpm, aSigwinch}),
     inputState(aInputState),
     sigwinch(aSigwinch),
     wrapper(aWrapper),
     gpm(aGpm)
 {
+    // Ensure we don't miss a possible undetected screen size change (e.g. after
+    // recovering from SIGTSTP).
+    if (sigwinch)
+        sigwinch->signal();
 }
 
-LinuxConsoleStrategy &LinuxConsoleStrategy::create( ConsoleCtl &con,
-                                                    DisplayBuffer &displayBuf,
-                                                    InputState &inputState,
-                                                    DisplayStrategy &display,
-                                                    InputStrategy &input ) noexcept
+LinuxConsoleAdapter &LinuxConsoleAdapter::create( ConsoleCtl &con,
+                                                  DisplayBuffer &displayBuf,
+                                                  InputState &inputState,
+                                                  DisplayAdapter &display,
+                                                  InputAdapter &input ) noexcept
 {
     auto *sigwinch = SigwinchHandler::create();
     auto &wrapper = *new LinuxConsoleInput(con, input);
     auto *gpm = GpmInput::create(displayBuf);
-    return *new LinuxConsoleStrategy(display, wrapper, inputState, sigwinch, gpm);
+    return *new LinuxConsoleAdapter(display, wrapper, inputState, sigwinch, gpm);
 }
 
-LinuxConsoleStrategy::~LinuxConsoleStrategy()
+LinuxConsoleAdapter::~LinuxConsoleAdapter()
 {
     delete sigwinch;
     delete gpm;
@@ -67,11 +69,11 @@ bool LinuxConsoleInput::getEvent(TEvent &ev) noexcept
         // Ctrl+Back/Ctrl+Tab/Ctrl+Enter.
         if (keyCode == kbBack || keyCode == kbTab || keyCode == kbEnter)
             ev.keyDown.controlKeyState &= ~kbCtrlShift;
-        // Special cases for Ctrl+Back and Shift+Tab.
+        // Special cases for Ctrl+Back, Shift+Tab and Alt+Tab.
         if (keyCode == 0x001F && (ev.keyDown.controlKeyState & kbCtrlShift))
             keyCode = kbCtrlBack;
-        else if (keyCode == kbAltTab && ((ev.keyDown.controlKeyState & (kbShift | kbCtrlShift | kbAltShift)) == kbShift))
-            keyCode = kbShiftTab;
+        else if (keyCode == kbShiftTab || keyCode == kbAltTab)
+            keyCode = kbTab; // Take into account just the controlKeyState modifiers.
         TermIO::normalizeKey(ev.keyDown);
         return true;
     }

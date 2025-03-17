@@ -16,7 +16,7 @@ Platform *Platform::instance;
 
 // This is used by TText. It is a global function pointer (instead of an
 // instance method) so that it can be used regardless of whether the global
-// Platform instance has been created/destroyed or not.
+// Platform instance has been created or not.
 int (*Platform::charWidth)(uint32_t) noexcept = &Platform::initAndGetCharWidth;
 
 int Platform::initAndGetCharWidth(uint32_t wc) noexcept
@@ -32,16 +32,16 @@ void Platform::initEncodingStuff() noexcept
         CpTranslator::init();
 #ifdef _WIN32
         setlocale(LC_ALL, ".utf8");
-        charWidth = &Win32ConsoleStrategy::charWidth;
+        charWidth = &Win32ConsoleAdapter::charWidth;
 #else
         setlocale(LC_ALL, "");
 #ifdef __linux__
         auto &con = ConsoleCtl::getInstance();
         if (con.isLinuxConsole())
-            charWidth = &LinuxConsoleStrategy::charWidth;
+            charWidth = &LinuxConsoleAdapter::charWidth;
         else
 #endif // __linux__
-            charWidth = &UnixConsoleStrategy::charWidth;
+            charWidth = &UnixConsoleAdapter::charWidth;
 #endif // _WIN32
 
         (void) init;
@@ -49,22 +49,21 @@ void Platform::initEncodingStuff() noexcept
     }();
 }
 
-Platform::Platform() noexcept
+Platform &Platform::getInstance() noexcept
 {
-    instance = this;
-    initEncodingStuff();
+    static int init = [] ()
+    {
+        instance = new Platform;
+        initEncodingStuff();
+
+        (void) init;
+        return 0;
+    }();
+
+    return *instance;
 }
 
-Platform::~Platform()
-{
-    restoreConsole();
-#ifndef _WIN32
-    ConsoleCtl::destroyInstance();
-#endif
-    instance = nullptr;
-}
-
-void Platform::restoreConsole(ConsoleStrategy *&c) noexcept
+void Platform::restoreConsole(ConsoleAdapter *&c) noexcept
 {
     if (c != &dummyConsole)
     {
@@ -75,6 +74,9 @@ void Platform::restoreConsole(ConsoleStrategy *&c) noexcept
         SignalHandler::disable();
         delete c;
         c = &dummyConsole;
+#ifdef _WIN32
+        ConsoleCtl::destroyInstance();
+#endif
     }
 }
 

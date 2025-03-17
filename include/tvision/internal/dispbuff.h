@@ -11,7 +11,7 @@
 namespace tvision
 {
 
-class DisplayStrategy;
+class DisplayAdapter;
 
 namespace
 {
@@ -21,6 +21,9 @@ struct FlushScreenAlgorithm;
 class DisplayBuffer
 {
     friend FlushScreenAlgorithm;
+
+    using Clock = std::chrono::steady_clock;
+    using TimePoint = Clock::time_point;
 
     struct Range {
         int begin, end;
@@ -42,7 +45,8 @@ class DisplayBuffer
 
     bool limitFPS;
     std::chrono::microseconds flushDelay {};
-    std::chrono::time_point<std::chrono::steady_clock> lastFlush {};
+    TimePoint lastFlush {};
+    TimePoint pendingFlush {};
 
 #ifdef _WIN32
     static constexpr int defaultFPS = 120; // Just 60 feels notably slower on Windows, I don't know why.
@@ -65,20 +69,22 @@ class DisplayBuffer
 public:
 
     TPoint size {};
-    int caretSize {};
+    int caretSize {-1};
 
     DisplayBuffer() noexcept;
 
     void setCaretSize(int size) noexcept;
     void setCaretPosition(int x, int y) noexcept;
     void screenWrite(int x, int y, TScreenCell *buf, int len) noexcept;
-    void clearScreen(DisplayStrategy &) noexcept;
-    void redrawScreen(DisplayStrategy &) noexcept;
-    void flushScreen(DisplayStrategy &) noexcept;
-    TScreenCell *reloadScreenInfo(DisplayStrategy &) noexcept;
+    void clearScreen(DisplayAdapter &) noexcept;
+    void redrawScreen(DisplayAdapter &) noexcept;
+    void flushScreen(DisplayAdapter &) noexcept;
+    TScreenCell *reloadScreenInfo(DisplayAdapter &) noexcept;
 
     void setCursorPosition(int x, int y) noexcept;
     void setCursorVisibility(bool visible) noexcept;
+
+    int timeUntilPendingFlushMs() noexcept;
 };
 
 inline bool DisplayBuffer::inBounds(int x, int y) const noexcept

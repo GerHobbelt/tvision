@@ -60,6 +60,7 @@ TButton::TButton( const TRect& bounds,
 TButton::~TButton()
 {
     delete[] (char *)title;
+    killTimer(animationTimer);
 }
 
 void TButton::draw()
@@ -217,7 +218,7 @@ void TButton::handleEvent( TEvent& event )
                 ( event.keyDown.keyCode == getAltCode(c) ||
                   ( owner->phase == phPostProcess &&
                     c != 0 &&
-                    toupper(event.keyDown.charScan.charCode) == c
+                    c == (char) toupper(event.keyDown.charScan.charCode)
                   ) ||
                   ( (state & sfFocused) != 0 &&
                     event.keyDown.charScan.charCode == ' '
@@ -226,9 +227,8 @@ void TButton::handleEvent( TEvent& event )
               )
                 {
                 drawState( True );
-                if( animationTimer != 0 )
-                    press();
-                animationTimer = setTimer( animationDurationMs );
+                if( animationTimer == 0 )
+                    animationTimer = setTimer( animationDurationMs );
                 clearEvent( event );
                 }
             break;
@@ -239,7 +239,9 @@ void TButton::handleEvent( TEvent& event )
                 case cmDefault:
                     if( amDefault && !(state & sfDisabled) )
                         {
-                        press();
+                        drawState( True );
+                        if( animationTimer == 0 )
+                            animationTimer = setTimer( animationDurationMs );
                         clearEvent(event);
                         }
                     break;

@@ -20,15 +20,19 @@ static bool isWine() noexcept
     return !!GetProcAddress(GetModuleHandleW(L"ntdll"), "wine_get_version");
 }
 
-Win32ConsoleStrategy &Win32ConsoleStrategy::create() noexcept
+Win32ConsoleAdapter &Win32ConsoleAdapter::create() noexcept
 {
     auto &con = ConsoleCtl::getInstance();
+    DWORD startupMode;
     // Set the input mode.
     {
         DWORD consoleMode = 0;
         GetConsoleMode(con.in(), &consoleMode);
+        startupMode = consoleMode;
         consoleMode |= ENABLE_WINDOW_INPUT; // Report changes in buffer size
+        consoleMode |= ENABLE_MOUSE_INPUT; // Report mouse events.
         consoleMode &= ~ENABLE_PROCESSED_INPUT; // Report CTRL+C and SHIFT+Arrow events.
+        consoleMode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT); // Report Ctrl+S.
         consoleMode |= ENABLE_EXTENDED_FLAGS;   /* Disable the Quick Edit mode, */
         consoleMode &= ~ENABLE_QUICK_EDIT_MODE; /* which inhibits the mouse.    */
         SetConsoleMode(con.in(), consoleMode);
@@ -105,19 +109,19 @@ Win32ConsoleStrategy &Win32ConsoleStrategy::create() noexcept
     WinWidth::reset();
     auto &display = *new Win32Display(con, supportsVT);
     auto &input = *new Win32Input(con);
-    return *new Win32ConsoleStrategy(con, cpInput, cpOutput, display, input);
+    return *new Win32ConsoleAdapter(con, startupMode, cpInput, cpOutput, display, input);
 }
 
-Win32ConsoleStrategy::~Win32ConsoleStrategy()
+Win32ConsoleAdapter::~Win32ConsoleAdapter()
 {
     delete &display;
     delete &input;
     SetConsoleCP(cpInput);
     SetConsoleOutputCP(cpOutput);
-    ConsoleCtl::destroyInstance();
+    SetConsoleMode(con.in(), startupMode);
 }
 
-bool Win32ConsoleStrategy::isAlive() noexcept
+bool Win32ConsoleAdapter::isAlive() noexcept
 {
     DWORD events = 0;
     return GetNumberOfConsoleInputEvents(con.in(), &events);
@@ -134,7 +138,7 @@ static bool openClipboard() noexcept
     return false;
 }
 
-bool Win32ConsoleStrategy::setClipboardText(TStringView text) noexcept
+bool Win32ConsoleAdapter::setClipboardText(TStringView text) noexcept
 {
     bool result = false;
     if (openClipboard())
@@ -161,7 +165,7 @@ bool Win32ConsoleStrategy::setClipboardText(TStringView text) noexcept
     return result;
 }
 
-bool Win32ConsoleStrategy::requestClipboardText(void (&accept)(TStringView)) noexcept
+bool Win32ConsoleAdapter::requestClipboardText(void (&accept)(TStringView)) noexcept
 {
     bool result = false;
     if (openClipboard())
@@ -188,30 +192,9 @@ bool Win32ConsoleStrategy::requestClipboardText(void (&accept)(TStringView)) noe
 // Win32Input
 
 Win32Input::Win32Input(ConsoleCtl &aCon) noexcept :
-    InputStrategy(aCon.in()),
+    InputAdapter(aCon.in()),
     con(aCon)
 {
-}
-
-int Win32Input::getButtonCount() noexcept
-{
-    DWORD num;
-    GetNumberOfConsoleMouseButtons(&num);
-    return num;
-}
-
-void Win32Input::cursorOn() noexcept
-{
-    DWORD consoleMode = 0;
-    GetConsoleMode(con.in(), &consoleMode);
-    SetConsoleMode(con.in(), consoleMode | ENABLE_MOUSE_INPUT);
-}
-
-void Win32Input::cursorOff() noexcept
-{
-    DWORD consoleMode = 0;
-    GetConsoleMode(con.in(), &consoleMode);
-    SetConsoleMode(con.in(), consoleMode & ~ENABLE_MOUSE_INPUT);
 }
 
 bool Win32Input::getEvent(TEvent &ev) noexcept
@@ -263,10 +246,10 @@ bool Win32Input::getEvent(const INPUT_RECORD &ir, TEvent &ev) noexcept
 // Win32Display
 
 Win32Display::Win32Display(ConsoleCtl &aCon, bool useAnsi) noexcept :
-    TerminalDisplay(aCon),
-    ansiScreenWriter(useAnsi ? new AnsiScreenWriter(aCon) : nullptr)
+    con(aCon)
 {
-    initCapabilities();
+    if (useAnsi)
+        ansiScreenWriter = new AnsiScreenWriter(con, TermCap::getDisplayCapabilities(con, *this));
 }
 
 Win32Display::~Win32Display()
@@ -274,49 +257,47 @@ Win32Display::~Win32Display()
     delete ansiScreenWriter;
 }
 
-void Win32Display::reloadScreenInfo() noexcept
+TPoint Win32Display::reloadScreenInfo() noexcept
 {
+    TPoint lastSize = size;
     size = con.getSize();
-    CONSOLE_SCREEN_BUFFER_INFO sbInfo {};
-    GetConsoleScreenBufferInfo(con.out(), &sbInfo);
-    // Set the cursor temporally to (0, 0) to prevent the console from crashing
-    // due to https://github.com/microsoft/terminal/issues/7511.
-    auto curPos = sbInfo.dwCursorPosition;
-    SetConsoleCursorPosition(con.out(), {0, 0});
-    // Make sure the buffer size matches the viewport size so that the
-    // scrollbars are not shown.
-    SetConsoleScreenBufferSize(con.out(), {(short) size.x, (short) size.y});
-    // Restore the cursor position (it does not matter if it is out of bounds).
-    SetConsoleCursorPosition(con.out(), curPos);
 
-    if (ansiScreenWriter)
-        ansiScreenWriter->resetAttributes();
-}
+    if (lastSize != size)
+    {
+        CONSOLE_SCREEN_BUFFER_INFO sbInfo {};
+        GetConsoleScreenBufferInfo(con.out(), &sbInfo);
+        // Set the cursor temporarily to (0, 0) to prevent the console from
+        // crashing due to https://github.com/microsoft/terminal/issues/7511.
+        auto curPos = sbInfo.dwCursorPosition;
+        SetConsoleCursorPosition(con.out(), {0, 0});
+        // Make sure the buffer size matches the viewport size so that the
+        // scrollbars are not shown.
+        // This must be done only when the viewport size has changed. Otherwise,
+        // we may keep triggering WINDOW_BUFFER_SIZE_EVENT events all the time,
+        // at least on Wine.
+        SetConsoleScreenBufferSize(con.out(), {(short) size.x, (short) size.y});
+        // Restore the cursor position (it does not matter if it is out of bounds).
+        SetConsoleCursorPosition(con.out(), curPos);
+    }
 
-bool Win32Display::screenChanged() noexcept
-{
-    bool changed = TerminalDisplay::screenChanged();
     CONSOLE_FONT_INFO fontInfo;
     if ( GetCurrentConsoleFont(con.out(), FALSE, &fontInfo)
          && memcmp(&fontInfo, &lastFontInfo, sizeof(fontInfo)) != 0 )
     {
-        changed = true;
+        // Character width depends on the font and the font size being used.
         WinWidth::reset();
         lastFontInfo = fontInfo;
     }
-    return changed;
-}
 
-TPoint Win32Display::getScreenSize() noexcept
-{
+    if (ansiScreenWriter)
+        ansiScreenWriter->reset();
+    else
+    {
+        caretPos = {-1, -1};
+        lastAttr = '\x00';
+    }
+
     return size;
-}
-
-int Win32Display::getCaretSize() noexcept
-{
-    CONSOLE_CURSOR_INFO crInfo {};
-    GetConsoleCursorInfo(con.out(), &crInfo);
-    return crInfo.bVisible ? crInfo.dwSize : 0;
 }
 
 int Win32Display::getColorCount() noexcept
@@ -330,7 +311,12 @@ int Win32Display::getColorCount() noexcept
     return 16;
 }
 
-void Win32Display::lowlevelCursorSize(int size) noexcept
+TPoint Win32Display::getFontSize() noexcept
+{
+    return con.getFontSize();
+}
+
+void Win32Display::setCaretSize(int size) noexcept
 {
     CONSOLE_CURSOR_INFO crInfo;
     if (size) {
@@ -359,46 +345,49 @@ void Win32Display::clearScreen() noexcept
     }
 }
 
-void Win32Display::lowlevelWriteChars(TStringView chars, TColorAttr attr) noexcept
+void Win32Display::writeCell( TPoint pos, TStringView text, TColorAttr attr,
+                              bool doubleWidth ) noexcept
 {
     if (ansiScreenWriter)
-        ansiScreenWriter->lowlevelWriteChars(chars, attr, termcap);
+        ansiScreenWriter->writeCell(pos, text, attr, doubleWidth);
     else
     {
-        uchar bios = attr.toBIOS();
-        if (bios != lastAttr)
+        if (pos != caretPos)
         {
-            lowlevelFlush();
-            SetConsoleTextAttribute(con.out(), bios);
-            lastAttr = bios;
+            flush();
+            SetConsoleCursorPosition(con.out(), {(short) pos.x, (short) pos.y});
         }
-        buf.insert(buf.end(), chars.begin(), chars.end());
+
+        uchar biosAttr = attr.toBIOS();
+        if (biosAttr != lastAttr)
+        {
+            flush();
+            SetConsoleTextAttribute(con.out(), biosAttr);
+        }
+
+        buf.insert(buf.end(), text.begin(), text.end());
+
+        caretPos = {pos.x + 1 + doubleWidth, pos.y};
+        lastAttr = biosAttr;
     }
 }
 
-void Win32Display::lowlevelMoveCursor(uint x, uint y) noexcept
+void Win32Display::setCaretPosition(TPoint pos) noexcept
 {
     if (ansiScreenWriter)
-        ansiScreenWriter->lowlevelMoveCursor(x, y);
+        ansiScreenWriter->setCaretPosition(pos);
     else
     {
-        lowlevelFlush();
-        SetConsoleCursorPosition(con.out(), {(short) x, (short) y});
+        flush();
+        SetConsoleCursorPosition(con.out(), {(short) pos.x, (short) pos.y});
+        caretPos = pos;
     }
 }
 
-void Win32Display::lowlevelMoveCursorX(uint x, uint y) noexcept
+void Win32Display::flush() noexcept
 {
     if (ansiScreenWriter)
-        ansiScreenWriter->lowlevelMoveCursorX(x);
-    else
-        lowlevelMoveCursor(x, y);
-}
-
-void Win32Display::lowlevelFlush() noexcept
-{
-    if (ansiScreenWriter)
-        ansiScreenWriter->lowlevelFlush();
+        ansiScreenWriter->flush();
     else
     {
         con.write(buf.data(), buf.size());
@@ -488,16 +477,21 @@ bool getWin32Key(const KEY_EVENT_RECORD &KeyEvent, TEvent &ev, InputState &state
          ev.keyDown.keyCode == 0x5C00 )
         // Discard standalone Shift, Ctrl, Alt, Caps Lock, Windows keys.
         ev.keyDown.keyCode = kbNoKey;
-    else if (ev.keyDown.controlKeyState & kbRightAlt)
-    {
-        if (ev.keyDown.textLength == 0)
-            // When AltGr+Key does not produce a character, an unwanted keyCode
-            // may be read instead, so discard it.
-            ev.keyDown.keyCode = kbNoKey;
-        else
-            // Otherwise, discard the Ctrl modifier that is automatically added.
-            ev.keyDown.controlKeyState &= ~kbLeftCtrl;
-    }
+    else if ( (ev.keyDown.controlKeyState & kbLeftCtrl) &&
+              (ev.keyDown.controlKeyState & kbRightAlt) &&
+              ev.keyDown.textLength == 0 )
+        // We cannot tell for sure if the right Alt key is AltGr, since
+        // that depends on the keyboard layout, but it is certain that
+        // AltGr automatically adds the left Ctrl flag.
+        // If both of these are set but no text is produced, discard the
+        // whole event since we don't want AltGr to be handled as Ctrl+Alt.
+        ev.keyDown.keyCode = kbNoKey;
+    else if ( (ev.keyDown.controlKeyState & kbCtrlShift) &&
+              (ev.keyDown.controlKeyState & kbAltShift) &&
+              ev.keyDown.textLength != 0 )
+        // If Ctrl+Alt produces text, we are dealing with AltGr. In this case,
+        // discard the Ctrl and Alt modifiers.
+        ev.keyDown.controlKeyState &= ~(kbCtrlShift | kbAltShift);
     else if (KeyEvent.wVirtualScanCode < 89)
     {
         // Convert NT style virtual scan codes to PC BIOS codes.

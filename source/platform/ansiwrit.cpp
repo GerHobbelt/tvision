@@ -1,13 +1,48 @@
 #include <tvision/internal/ansiwrit.h>
-#include <tvision/internal/termdisp.h>
+#include <tvision/internal/platform.h>
 #include <tvision/internal/strings.h>
 #include <tvision/internal/conctl.h>
+#include <tvision/internal/getenv.h>
 #include <stdlib.h>
 
 #define CSI "\x1B["
 
 namespace tvision
 {
+
+TermCap TermCap::getDisplayCapabilities( ConsoleCtl &con,
+                                         DisplayAdapter &display ) noexcept
+{
+    TermCap termcap {};
+    auto colorterm = getEnv<TStringView>("COLORTERM");
+    if (colorterm == "truecolor" || colorterm == "24bit")
+        termcap.colors = Direct;
+    else
+    {
+        int colors = display.getColorCount();
+        if (colors >= 256*256*256)
+            termcap.colors = Direct;
+        else if (colors >= 256)
+            termcap.colors = Indexed256;
+        else if (colors >= 16)
+            termcap.colors = Indexed16;
+        else if (colors >= 8)
+        {
+            termcap.colors = Indexed8;
+            termcap.quirks |= qfBoldIsBright;
+#ifdef __linux__
+            if (con.isLinuxConsole())
+                termcap.quirks |= qfBlinkIsBright | qfNoItalic | qfNoUnderline;
+            else
+#endif // __linux__
+            if (getEnv<TStringView>("TERM") == "xterm")
+                // Let's assume all terminals disguising themselves as 'xterm'
+                // support at least 16 colors.
+                termcap.colors = Indexed16;
+        }
+    }
+    return termcap;
+}
 
 inline AnsiScreenWriter::Buffer::~Buffer()
 {
@@ -54,34 +89,35 @@ void AnsiScreenWriter::Buffer::reserve(size_t extraCapacity) noexcept
 
 AnsiScreenWriter::~AnsiScreenWriter()
 {
-    resetAttributes();
-    lowlevelFlush();
+    reset();
+    flush();
 }
 
-inline void AnsiScreenWriter::bufWriteCSI1(uint a, char F) noexcept
+inline void AnsiScreenWriter::bufWriteCSI1(int a, char F) noexcept
 {
     // CSI a F
     buf.reserve(32);
     buf.push(CSI);
-    buf.tail = fast_utoa(a, buf.tail);
+    buf.tail = fast_utoa((uint) a, buf.tail);
     buf.push(F);
 }
 
-inline void AnsiScreenWriter::bufWriteCSI2(uint a, uint b, char F) noexcept
+inline void AnsiScreenWriter::bufWriteCSI2(int a, int b, char F) noexcept
 {
     // CSI a ; b F
     buf.reserve(32);
     buf.push(CSI);
-    buf.tail = fast_utoa(a, buf.tail);
+    buf.tail = fast_utoa((uint) a, buf.tail);
     buf.push(';');
-    buf.tail = fast_utoa(b, buf.tail);
+    buf.tail = fast_utoa((uint) b, buf.tail);
     buf.push(F);
 }
 
-void AnsiScreenWriter::resetAttributes() noexcept
+void AnsiScreenWriter::reset() noexcept
 {
     buf.reserve(4);
     buf.push(CSI "0m");
+    caretPos = {-1, -1};
     lastAttr = {};
 }
 
@@ -94,28 +130,32 @@ void AnsiScreenWriter::clearScreen() noexcept
 
 static char *convertAttributes(const TColorAttr &, TermAttr &, const TermCap &, char*) noexcept;
 
-void AnsiScreenWriter::lowlevelWriteChars( TStringView chars, TColorAttr attr,
-                                   const TermCap &termcap ) noexcept
+void AnsiScreenWriter::writeCell( TPoint pos, TStringView text, TColorAttr attr,
+                                  bool doubleWidth ) noexcept
 {
     buf.reserve(256);
+
+    // Move caret. When the movement is only horizontal, we can use a
+    // shorter sequence.
+    if (pos.y != caretPos.y)
+        bufWriteCSI2(pos.y + 1, pos.x + 1, 'H');
+    else if (pos.x != caretPos.x)
+        bufWriteCSI1(pos.x + 1, 'G');
+
     buf.tail = convertAttributes(attr, lastAttr, termcap, buf.tail);
-    buf.push(chars);
+    buf.push(text);
+
+    caretPos = {pos.x + 1 + doubleWidth, pos.y};
 }
 
-void AnsiScreenWriter::lowlevelMoveCursorX(uint x) noexcept
-{
-    // Optimized case where the cursor only moves horizontally.
-    bufWriteCSI1(x + 1, 'G');
-}
-
-void AnsiScreenWriter::lowlevelMoveCursor(uint x, uint y) noexcept
+void AnsiScreenWriter::setCaretPosition(TPoint pos) noexcept
 {
     buf.reserve(32);
-//     buf.push('\r'); // Make dumps readable.
-    bufWriteCSI2(y + 1, x + 1, 'H');
+    bufWriteCSI2(pos.y + 1, pos.x + 1, 'H');
+    caretPos = pos;
 }
 
-void AnsiScreenWriter::lowlevelFlush() noexcept
+void AnsiScreenWriter::flush() noexcept
 {
     con.write(buf.data(), buf.size());
     buf.clear();

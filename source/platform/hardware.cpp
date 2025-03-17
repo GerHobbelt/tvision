@@ -21,15 +21,13 @@ static tvision::Platform *platf;
 THardwareInfo::THardwareInfo() noexcept
 {
     using namespace tvision;
+    platf = &Platform::getInstance();
     pendingEvent = 0;
     alwaysFlush = getEnv<int>("TVISION_MAX_FPS", 0) < 0;
-    platf = new Platform();
 }
 
 THardwareInfo::~THardwareInfo()
 {
-    delete platf;
-    platf = nullptr;
 }
 
 void THardwareInfo::setCaretSize( ushort size ) noexcept { platf->setCaretSize(size); }
@@ -48,10 +46,11 @@ void THardwareInfo::screenWrite( ushort x, ushort y, TScreenCell *buf, DWORD len
         flushScreen();
 }
 TScreenCell *THardwareInfo::allocateScreenBuffer() noexcept { return platf->reloadScreenInfo(); }
-void THardwareInfo::freeScreenBuffer( TScreenCell * ) noexcept {}
-DWORD THardwareInfo::getButtonCount() noexcept { return platf->getButtonCount(); }
-void THardwareInfo::cursorOn() noexcept { platf->cursorOn(); }
-void THardwareInfo::cursorOff() noexcept { platf->cursorOff(); }
+void THardwareInfo::freeScreenBuffer(TScreenCell *) noexcept { platf->freeScreenBuffer(); }
+// Turbo Vision only checks whether this is non-zero.
+DWORD THardwareInfo::getButtonCount() noexcept { return 2; }
+void THardwareInfo::cursorOn() noexcept {}
+void THardwareInfo::cursorOff() noexcept {}
 void THardwareInfo::flushScreen() noexcept { platf->flushScreen(); }
 void THardwareInfo::setUpConsole() noexcept { platf->setUpConsole(); }
 void THardwareInfo::restoreConsole() noexcept { platf->restoreConsole(); }
