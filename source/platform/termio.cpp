@@ -3,7 +3,7 @@
 
 #include <tvision/internal/termio.h>
 #include <tvision/internal/far2l.h>
-#include <tvision/internal/stdioctl.h>
+#include <tvision/internal/conctl.h>
 #include <tvision/internal/constmap.h>
 #include <tvision/internal/constarr.h>
 #include <tvision/internal/codepage.h>
