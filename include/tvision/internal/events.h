@@ -68,6 +68,9 @@ public:
     {
     }
 
+	// fix warning C5204: 'tvision::EventSource': class has virtual functions, but its trivial destructor is not virtual; instances of objects derived from this class may not be destructed correctly
+	virtual ~EventSource() = default;
+
     virtual bool hasPendingEvents() noexcept;
     virtual bool getEvent(TEvent &) noexcept;
 };
