@@ -40,6 +40,10 @@ typedef unsigned P_id_type;
 #pragma option -po-
 #endif
 
+// __link() macro: warning C5214: applying '=' to an operand with a volatile qualified type is deprecated in C++20
+
+#if __cplusplus < 202002L
+
 #if !defined( __fLink_def )
 #define __fLink_def
 
@@ -72,6 +76,15 @@ struct fLink
 #endif // __COUNTER__
 
 #endif // __fLink_def
+
+#else
+
+#define __link_declare( s, n )   /**/
+
+#define __link_expand( s, ... ) __link_declare( s, __VA_ARGS__ )
+#define __link( s ) __link_expand( s, __COUNTER__ )
+
+#endif
 
 #if defined( Uses_TStreamable ) && !defined( __TStreamable )
 #define __TStreamable
