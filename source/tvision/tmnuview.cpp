@@ -580,7 +580,7 @@ void TMenuView::writeMenu( opstream& os, TMenu *menu )
 {
     uchar tok = 0xFF;
 
-    assert( menu != 0 );
+    assert( menu != nullptr );
 
     for( TMenuItem *item = menu->items; item != 0; item = item->next )
         {
