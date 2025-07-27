@@ -388,7 +388,7 @@ char *ipstream::readString()
 
 char *ipstream::readString( char *buf, unsigned maxLen )
 {
-    assert( buf != 0 );
+    assert( buf != nullptr );
 
     uchar len = readByte();
     if( len > maxLen-1 )
@@ -490,7 +490,7 @@ ipstream& operator >> ( ipstream& ps, void *&t )
             {
             P_id_type index = ps.readWord();
             t = (void *)ps.find( index );
-            assert( t != 0 );
+            assert( t != nullptr );
             break;
             }
         case pstream::ptObject:
