@@ -17,17 +17,6 @@
 #if !defined( __CONFIG_H )
 #define __CONFIG_H
 
-#if defined(BUILD_MONOLITHIC)
-
-#ifndef abort
-#error "Expected abort to be redefined to point at our override function(s) below..."
-#endif
-#ifndef exit
-#error "Expected exit to be redefined to point at our override function(s) below..."
-#endif
-
-#endif
-
 #if !defined( __LIMITS_H )
 #include <limits.h>
 #endif  // __LIMITS_H
