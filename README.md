@@ -378,14 +378,14 @@ The following are new features not available in Borland's release of Turbo Visio
 * `TRect` methods `move`, `grow`, `intersect` and `Union` now return `TRect&` instead of being `void` so that they can be chained.
 * `TOutlineViewer` now allows the root node to have siblings.
 * New method `THelpTopic::longestLineWidth` to measure the width of the longest line in a help topic, taking line wrapping into account.
-* New function `ushort popupMenu(TPoint where, TMenuItem &aMenu, TGroup *receiver=0)` which spawns a `TMenuPopup` on the desktop. See `source/tvision/popupmnu.cpp`.
+* New function `ushort popupMenu(TPoint where, TMenuItem &aMenu, TGroup *receiver = 0)` which spawns a `TMenuPopup` on the desktop. See `source/tvision/popupmnu.cpp`.
 * New virtual method `TMenuItem& TEditor::initContextMenu(TPoint p)` that determines the entries of the right-click context menu in `TEditor`.
 * `fexpand` can now take a second parameter `relativeTo`.
 * New class `TStringView`, inspired by `std::string_view`.
     * Many functions which originally had null-terminated string parameters now receive `TStringView` instead. `TStringView` is compatible with `std::string_view`, `std::string` and `const char *` (even `nullptr`).
 * New class `TSpan<T>`, inspired by `std::span`.
 * New classes `TDrawSurface` and `TSurfaceView`, see `<tvision/surface.h>`.
-* The system integration subsystems (`THardwareInfo`, `TScreen`, `TEventQueue`...) are now initialized when constructing a `TApplication` for the first time, rather than before `main`. They are still destroyed on exit from `main`.
+* Turbo Vision's subsystems (`THardwareInfo`, `TScreen`, `TEventQueue`...) are now initialized when constructing a `TApplication` for the first time, rather than before `main`. They are still destroyed on exit from `main`.
 * New method `TVMemMgr::reallocateDiscardable()` which can be used along `allocateDiscardable` and `freeDiscardable`.
 * New method `TView::textEvent()` which allows receiving text in an efficient manner, see [Clipboard interaction](#clipboard).
 * New class `TClipboard`, see [Clipboard interaction](#clipboard).
@@ -406,6 +406,12 @@ The following are new features not available in Borland's release of Turbo Visio
     void printMouseButtonState(ostream &, ushort buttonState);
     void printMouseWheelState(ostream &, ushort wheelState);
     void printMouseEventFlags(ostream &, ushort eventFlags);
+    ```
+* New string-based variants of the `hotKey`, `getAltChar` and `getCtrlChar` functions from `tvision/util.h`, which can be used to implement multibyte shortcuts:
+    ```c++
+    TStringView hotKeyStr(TStringView);
+    TStringView getAltCharStr(const KeyDownEvent &);
+    TStringView getCtrlCharStr(const KeyDownEvent &);
     ```
 * New class `TKey` which can be used to define new key combinations (e.g. `Shift+Alt+Up`) by specifying a key code and a mask of key modifiers:
     ```c++
